@@ -33,6 +33,9 @@ ifeq ($(CONFIG_SECURITY), y)
 	include $(SECURITY_DIR)/security.mk
 endif
 
+CONNECTIVITY_DIR = $(COMPONENTS_DIR)/connectivity
+include $(CONNECTIVITY_DIR)/connectivity.mk
+
 C_SOURCES += \
 	${wildcard $(COMPONENTS_DIR)/log/*.c} \
 	${wildcard $(COMPONENTS_DIR)/misc/*.c} \
