@@ -9,7 +9,7 @@
 
 #include "coap_config.h"
 #include "libcoap.h"
-#include "mem.h"
+#include "coap2/mem.h"
 #include "coap_debug.h"
 
 #ifdef HAVE_ASSERT_H

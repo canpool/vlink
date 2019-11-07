@@ -24,8 +24,9 @@
 typedef SSIZE_T ssize_t;
 typedef USHORT in_port_t;
 #elif !defined (CONTIKI)
-#include <netinet/in.h>
-#include <sys/socket.h>
+// #include <netinet/in.h>
+// #include <sys/socket.h>
+#include "sal.h"
 #endif /* CONTIKI */
 
 #ifndef COAP_STATIC_INLINE

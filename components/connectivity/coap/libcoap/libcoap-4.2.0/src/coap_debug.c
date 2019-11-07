@@ -169,7 +169,7 @@ print_readable( const uint8_t *data, size_t len,
 
 size_t
 coap_print_addr(const struct coap_address_t *addr, unsigned char *buf, size_t len) {
-#if defined( HAVE_ARPA_INET_H ) || defined( HAVE_WS2TCPIP_H )
+#if defined( HAVE_ARPA_INET_H ) || defined( HAVE_WS2TCPIP_H ) || defined( HAVE_SOCKETADDR )
   const void *addrptr = NULL;
   in_port_t port;
   unsigned char *p = buf;
@@ -179,6 +179,7 @@ coap_print_addr(const struct coap_address_t *addr, unsigned char *buf, size_t le
     addrptr = &addr->addr.sin.sin_addr;
     port = ntohs(addr->addr.sin.sin_port);
     break;
+#ifdef CONFIG_IPV6
   case AF_INET6:
     if (len < 7) /* do not proceed if buffer is even too short for [::]:0 */
       return 0;
@@ -189,6 +190,7 @@ coap_print_addr(const struct coap_address_t *addr, unsigned char *buf, size_t le
     port = ntohs(addr->addr.sin6.sin6_port);
 
     break;
+#endif
   default:
     memcpy(buf, "(unknown address type)", min(22, len));
     return min(22, len);

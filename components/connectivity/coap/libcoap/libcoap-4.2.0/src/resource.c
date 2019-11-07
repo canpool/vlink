@@ -10,7 +10,7 @@
 #include "coap_config.h"
 #include "coap.h"
 #include "coap_debug.h"
-#include "mem.h"
+#include "coap2/mem.h"
 #include "net.h"
 #include "resource.h"
 #include "subscribe.h"

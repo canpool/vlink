@@ -44,7 +44,7 @@
 #include "libcoap.h"
 #include "utlist.h"
 #include "coap_debug.h"
-#include "mem.h"
+#include "coap2/mem.h"
 #include "str.h"
 #include "async.h"
 #include "resource.h"
@@ -1139,7 +1139,7 @@ coap_read_session(coap_context_t *ctx, coap_session_t *session, coap_tick_t now)
     ssize_t bytes_read;
     coap_address_copy(&packet->src, &session->remote_addr);
     coap_address_copy(&packet->dst, &session->local_addr);
-    bytes_read = ctx->network_read(&session->sock, packet);
+    bytes_read = ctx->network_read(&session->sock, session, packet);
 
     if (bytes_read < 0) {
       if (bytes_read == -2)
@@ -1269,7 +1269,7 @@ coap_read_endpoint(coap_context_t *ctx, coap_endpoint_t *endpoint, coap_tick_t n
   if (packet) {
     coap_address_init(&packet->src);
     coap_address_copy(&packet->dst, &endpoint->bind_addr);
-    bytes_read = ctx->network_read(&endpoint->sock, packet);
+    bytes_read = ctx->network_read(&endpoint->sock, endpoint->sessions, packet);
   }
   else {
     coap_log(LOG_WARNING, "*  %s: Packet allocation failed\n",

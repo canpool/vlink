@@ -1,16 +1,17 @@
 /**
- * SPDX-License-Identifier: Apache License 2.0
+ * Copyright (c) [2019] maminjie <canpool@163.com>
  *
- *  Copyright (C) 2019 maminjie <canpool@163.com>
- *  All rights reserved.
- *  Contact: https://github.com/canpool
+ * vlink is licensed under the Mulan PSL v1.
+ * You can use this software according to the terms and conditions of the Mulan PSL v1.
+ * You may obtain a copy of Mulan PSL v1 at:
  *
- * Change Logs:
- * Date         Author          Notes
- * 2019-09-15   maminjie        Created file
- * 2019-09-20   maminjie        Support sendmsg and recvmsg (for server)
+ *    http://license.coscl.org.cn/MulanPSL
+ *
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER
+ * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY OR
+ * FIT FOR A PARTICULAR PURPOSE.
+ * See the Mulan PSL v1 for more details.
  */
-
 /* coap_io.c -- Default network I/O functions for libcoap
  *
  * Copyright (C) 2012,2014,2016-2019 Olaf Bergmann <bergmann@tzi.org> and others
@@ -37,7 +38,9 @@
 #include "utlist.h"
 #include "resource.h"
 
-#include "sal.h"
+#ifdef WITH_DTLS
+#include "dtls.h"
+#endif
 
 #if !defined(WITH_CONTIKI)
  /* define generic PKTINFO for IPv4 */
@@ -49,6 +52,7 @@
 #  error "Need IP_PKTINFO or IP_RECVDSTADDR to request ancillary data from OS."
 #endif /* IP_PKTINFO */
 
+#ifdef CONFIG_IPV6
 /* define generic KTINFO for IPv6 */
 #ifdef IPV6_RECVPKTINFO
 #  define GEN_IPV6_PKTINFO IPV6_RECVPKTINFO
@@ -57,6 +61,7 @@
 #else
 #  error "Need IPV6_PKTINFO or IPV6_RECVPKTINFO to request ancillary data from OS."
 #endif /* IPV6_RECVPKTINFO */
+#endif /* CONFIG_IPV6 */
 #endif
 
 
@@ -105,6 +110,7 @@ coap_socket_bind_udp(coap_socket_t *sock,
                "coap_socket_bind_udp: setsockopt IP_PKTINFO: %s\n",
                 coap_socket_strerror());
     break;
+#ifdef CONFIG_IPV6
   case AF_INET6:
     /* Configure the socket as dual-stacked */
     if (sal_setsockopt(sock->fd, IPPROTO_IPV6, IPV6_V6ONLY, OPTVAL_T(&off), sizeof(off)) == COAP_SOCKET_ERROR)
@@ -117,6 +123,7 @@ coap_socket_bind_udp(coap_socket_t *sock,
                 coap_socket_strerror());
     sal_setsockopt(sock->fd, IPPROTO_IP, GEN_IP_PKTINFO, OPTVAL_T(&on), sizeof(on)); /* ignore error, because the likely cause is that IPv4 is disabled at the os level */
     break;
+#endif
   default:
     coap_log(LOG_ALERT, "coap_socket_bind_udp: unsupported sa_family\n");
     break;
@@ -174,6 +181,7 @@ coap_socket_connect_tcp1(coap_socket_t *sock,
     if (connect_addr.addr.sin.sin_port == 0)
       connect_addr.addr.sin.sin_port = htons(default_port);
     break;
+#ifdef CONFIG_IPV6
   case AF_INET6:
     if (connect_addr.addr.sin6.sin6_port == 0)
       connect_addr.addr.sin6.sin6_port = htons(default_port);
@@ -183,6 +191,7 @@ coap_socket_connect_tcp1(coap_socket_t *sock,
                "coap_socket_connect_tcp1: setsockopt IPV6_V6ONLY: %s\n",
                coap_socket_strerror());
     break;
+#endif
   default:
     coap_log(LOG_ALERT, "coap_socket_connect_tcp1: unsupported sa_family\n");
     break;
@@ -296,6 +305,7 @@ coap_socket_bind_tcp(coap_socket_t *sock,
   switch (listen_addr->addr.sa.sa_family) {
   case AF_INET:
     break;
+#ifdef CONFIG_IPV6
   case AF_INET6:
     /* Configure the socket as dual-stacked */
     if (sal_setsockopt(sock->fd, IPPROTO_IPV6, IPV6_V6ONLY, OPTVAL_T(&off), sizeof(off)) == COAP_SOCKET_ERROR)
@@ -303,6 +313,7 @@ coap_socket_bind_tcp(coap_socket_t *sock,
                "coap_socket_bind_tcp: setsockopt IPV6_V6ONLY: %s\n",
                coap_socket_strerror());
     break;
+#endif
   default:
     coap_log(LOG_ALERT, "coap_socket_bind_tcp: unsupported sa_family\n");
   }
@@ -390,6 +401,7 @@ coap_socket_connect_udp(coap_socket_t *sock,
     if (connect_addr.addr.sin.sin_port == 0)
       connect_addr.addr.sin.sin_port = htons(default_port);
     break;
+#ifdef CONFIG_IPV6
   case AF_INET6:
     if (connect_addr.addr.sin6.sin6_port == 0)
       connect_addr.addr.sin6.sin6_port = htons(default_port);
@@ -399,6 +411,7 @@ coap_socket_connect_udp(coap_socket_t *sock,
                "coap_socket_connect_udp: setsockopt IPV6_V6ONLY: %s\n",
                coap_socket_strerror());
     break;
+#endif
   default:
     coap_log(LOG_ALERT, "coap_socket_connect_udp: unsupported sa_family\n");
     break;
@@ -495,7 +508,7 @@ coap_socket_read(coap_socket_t *sock, uint8_t *data, size_t data_len) {
   return r;
 }
 
-#if (CONFIG_LINUX)
+#if defined(CONFIG_LINUX) && defined(CONFIG_MSGHDR)
 /* define struct in6_pktinfo, the struct is not defined in linux <netinet/in.h>
 */
 struct in6_pktinfo {
@@ -514,8 +527,14 @@ coap_network_send(coap_socket_t *sock, const coap_session_t *session, const uint
   if (!coap_debug_send_packet()) {
     bytes_written = (ssize_t)datalen;
   } else if (sock->flags & COAP_SOCKET_CONNECTED) {
+#ifdef WITH_DTLS
+    bytes_written = dtls_write((dtls_context *)(session->context->dtls_context), data, datalen);
+#else
     bytes_written = sal_send(sock->fd, data, datalen, 0);
-  } else {
+#endif
+  }
+#ifdef CONFIG_MSGHDR
+  else {
     /* a buffer large enough to hold all packet info types, ipv6 is the largest */
     char buf[CMSG_SPACE(sizeof(struct in6_pktinfo))];
 
@@ -538,6 +557,7 @@ coap_network_send(coap_socket_t *sock, const coap_session_t *session, const uint
     mhdr.msg_iovlen = 1;
 
     if (!coap_address_isany(&session->local_addr) && !coap_is_mcast(&session->local_addr)) switch (session->local_addr.addr.sa.sa_family) {
+#ifdef CONFIG_IPV6
     case AF_INET6:
     {
       struct cmsghdr *cmsg;
@@ -585,6 +605,7 @@ coap_network_send(coap_socket_t *sock, const coap_session_t *session, const uint
       }
       break;
     }
+#endif /* CONFIG_IPV6 */
     case AF_INET:
     {
 #if defined(IP_PKTINFO)
@@ -625,6 +646,7 @@ coap_network_send(coap_socket_t *sock, const coap_session_t *session, const uint
 
     bytes_written = sal_sendmsg(sock->fd, &mhdr, 0);
   }
+#endif /* CONFIG_MSGHDR */
 
   if (bytes_written < 0)
     coap_log(LOG_CRIT, "coap_network_send: %s\n", coap_socket_strerror());
@@ -645,7 +667,7 @@ void coap_packet_set_addr(coap_packet_t *packet, const coap_address_t *src, cons
 }
 
 ssize_t
-coap_network_read(coap_socket_t *sock, coap_packet_t *packet) {
+coap_network_read(coap_socket_t *sock, const coap_session_t *session, coap_packet_t *packet) {
   ssize_t len = -1;
 
   assert(sock);
@@ -659,14 +681,20 @@ coap_network_read(coap_socket_t *sock, coap_packet_t *packet) {
   }
 
   if (sock->flags & COAP_SOCKET_CONNECTED) {
+#ifdef WITH_DTLS
+    len = dtls_read((dtls_context *)(session->context->dtls_context), packet->payload, COAP_RXBUFFER_SIZE, 1000);
+#else
     len = sal_recv(sock->fd, packet->payload, COAP_RXBUFFER_SIZE, 0);
+#endif
     if (len < 0) {
       coap_log(LOG_WARNING, "coap_network_read: %s\n", coap_socket_strerror());
       goto error;
     } else if (len > 0) {
       packet->length = (size_t)len;
     }
-  } else {
+  }
+#ifdef CONFIG_MSGHDR
+  else {
     /* a buffer large enough to hold all packet info types, ipv6 is the largest */
     char buf[CMSG_SPACE(sizeof(struct in6_pktinfo))];
     struct msghdr mhdr;
@@ -700,7 +728,7 @@ coap_network_read(coap_socket_t *sock, coap_packet_t *packet) {
       /* Walk through ancillary data records until the local interface
        * is found where the data was received. */
       for (cmsg = CMSG_FIRSTHDR(&mhdr); cmsg; cmsg = CMSG_NXTHDR(&mhdr, cmsg)) {
-
+#ifdef CONFIG_IPV6
         /* get the local interface for IPv6 */
         if (cmsg->cmsg_level == IPPROTO_IPV6 && cmsg->cmsg_type == IPV6_PKTINFO) {
           union {
@@ -712,7 +740,7 @@ coap_network_read(coap_socket_t *sock, coap_packet_t *packet) {
           memcpy(&packet->dst.addr.sin6.sin6_addr, &u.p->ipi6_addr, sizeof(struct in6_addr));
           break;
         }
-
+#endif /* CONFIG_IPV6 */
         /* local interface for IPv4 */
 #if defined(IP_PKTINFO)
         if (cmsg->cmsg_level == SOL_IP && cmsg->cmsg_type == IP_PKTINFO) {
@@ -742,6 +770,7 @@ coap_network_read(coap_socket_t *sock, coap_packet_t *packet) {
       }
     }
   }
+#endif /* CONFIG_MSGHDR */
 
   if (len >= 0)
     return len;

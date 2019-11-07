@@ -15,7 +15,7 @@
 #include "coap_session.h"
 #include "net.h"
 #include "coap_debug.h"
-#include "mem.h"
+#include "coap2/mem.h"
 #include "resource.h"
 #include "utlist.h"
 #include "encode.h"

@@ -150,7 +150,7 @@ ssize_t coap_network_send( coap_socket_t *sock, const struct coap_session_t *ses
  * @return       The number of bytes received on success, or a value less than
  *               zero on error.
  */
-ssize_t coap_network_read( coap_socket_t *sock, struct coap_packet_t *packet );
+ssize_t coap_network_read( coap_socket_t *sock, const struct coap_session_t *session, struct coap_packet_t *packet );
 
 #ifndef coap_mcast_interface
 # define coap_mcast_interface(Local) 0

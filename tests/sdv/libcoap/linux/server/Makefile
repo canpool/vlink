@@ -41,7 +41,7 @@ CPP_SOURCES +=
 # CFLAGS
 #######################################
 # C defines
-C_DEFS	+=
+C_DEFS	+= -DCONFIG_IPV6 -DCONFIG_MSGHDR
 
 # C includes
 C_INCLUDES += -I .

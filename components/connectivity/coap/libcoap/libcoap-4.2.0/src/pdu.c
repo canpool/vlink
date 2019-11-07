@@ -31,7 +31,7 @@
 #include "pdu.h"
 #include "option.h"
 #include "encode.h"
-#include "mem.h"
+#include "coap2/mem.h"
 #include "coap_session.h"
 
 #ifndef min
