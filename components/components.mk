@@ -28,6 +28,11 @@ ifeq ($(CONFIG_OS), y)
 	include $(OS_DIR)/os.mk
 endif
 
+ifeq ($(CONFIG_SECURITY), y)
+	SECURITY_DIR = $(COMPONENTS_DIR)/security
+	include $(SECURITY_DIR)/security.mk
+endif
+
 C_SOURCES += \
 	${wildcard $(COMPONENTS_DIR)/log/*.c} \
 	${wildcard $(COMPONENTS_DIR)/misc/*.c} \
