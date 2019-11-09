@@ -27,51 +27,51 @@
 extern "C" {
 #endif /* __cplusplus */
 
-int sal_init(int socknum);
+int     sal_init(int socknum);
 
-int sal_socket(int domain, int type, int protocol);
-int sal_bind(int sockfd, const struct sockaddr *myaddr, socklen_t addrlen);
-int sal_listen(int sockfd, int backlog);
-int sal_accept(int sockfd, struct sockaddr *addr, socklen_t *addrlen);
-int sal_connect(int sockfd, const struct sockaddr *serv_addr, int addrlen);
-int sal_getsockname(int sockfd, struct sockaddr *localaddr, socklen_t *addrlen);
-int sal_getpeername(int sockfd, struct sockaddr *peeraddr, socklen_t *addrlen);
-int sal_getsockopt(int sockfd, int level, int optname, void *optval, socklen_t *optlen);
-int sal_setsockopt(int sockfd, int level, int optname, const void *optval, socklen_t optlen);
-int sal_send(int sockfd, const void *msg, size_t len, int flags);
-int sal_recv(int sockfd, void *buf, size_t len, int flags);
-int sal_sendto(int sockfd, const void *msg, size_t len, int flags, const struct sockaddr *dst_addr, socklen_t addrlen);
-int sal_recvfrom(int sockfd, void *buf, size_t len, int flags, struct sockaddr *src_addr, socklen_t *fromlen);
-int sal_sendmsg(int sockfd, const struct msghdr *msg, int flags);
-int sal_recvmsg(int sockfd, struct msghdr *msg, int flags);
-int sal_shutdown(int sockfd, int how);
-int sal_closesocket(int sockfd);
-int sal_ioctl(int sockfd, long cmd, void *arg);
+int     sal_socket(int domain, int type, int protocol);
+int     sal_bind(int sockfd, const struct sockaddr *myaddr, socklen_t addrlen);
+int     sal_listen(int sockfd, int backlog);
+int     sal_accept(int sockfd, struct sockaddr *addr, socklen_t *addrlen);
+int     sal_connect(int sockfd, const struct sockaddr *serv_addr, socklen_t addrlen);
+int     sal_getsockname(int sockfd, struct sockaddr *localaddr, socklen_t *addrlen);
+int     sal_getpeername(int sockfd, struct sockaddr *peeraddr, socklen_t *addrlen);
+int     sal_getsockopt(int sockfd, int level, int optname, void *optval, socklen_t *optlen);
+int     sal_setsockopt(int sockfd, int level, int optname, const void *optval, socklen_t optlen);
+ssize_t sal_send(int sockfd, const void *msg, size_t len, int flags);
+ssize_t sal_recv(int sockfd, void *buf, size_t len, int flags);
+ssize_t sal_sendto(int sockfd, const void *msg, size_t len, int flags, const struct sockaddr *dst_addr, socklen_t addrlen);
+ssize_t sal_recvfrom(int sockfd, void *buf, size_t len, int flags, struct sockaddr *src_addr, socklen_t *fromlen);
+ssize_t sal_sendmsg(int sockfd, const struct msghdr *msg, int flags);
+ssize_t sal_recvmsg(int sockfd, struct msghdr *msg, int flags);
+int     sal_shutdown(int sockfd, int how);
+int     sal_closesocket(int sockfd);
+int     sal_ioctl(int sockfd, unsigned long cmd, void *args);
 struct hostent *sal_gethostbyname(const char *name);
-int sal_getaddrinfo(const char *nodename, const char *servname, const struct addrinfo *hints, struct addrinfo **res);
-void sal_freeaddrinfo(struct addrinfo *ai);
+int     sal_getaddrinfo(const char *nodename, const char *servname, const struct addrinfo *hints, struct addrinfo **res);
+void    sal_freeaddrinfo(struct addrinfo *ai);
 
 /* network interface opreations */
 struct net_ops {
     /* network socket */
-    int (*socket)     (int domain, int type, int protocol);
-    int (*bind)       (int s, const struct sockaddr *myaddr, socklen_t addrlen);
-    int (*listen)     (int s, int backlog);
-    int (*accept)     (int s, struct sockaddr *addr, socklen_t *addrlen);
-    int (*connect)    (int s, const struct sockaddr *serv_addr, socklen_t addrlen);
-    int (*getsockname)(int s, struct sockaddr *localaddr, socklen_t *addrlen);
-    int (*getpeername)(int s, struct sockaddr *peeraddr, socklen_t *addrlen);
-    int (*setsockopt) (int s, int level, int optname, const void *optval, socklen_t optlen);
-    int (*getsockopt) (int s, int level, int optname, void *optval, socklen_t *optlen);
-    int (*send)       (int s, const void *msg, size_t len, int flags);
-    int (*sendmsg)    (int s, const struct msghdr *msg, int flags);
-    int (*sendto)     (int s, const void *msg, size_t len, int flags, const struct sockaddr *to, socklen_t tolen);
-    int (*recv)       (int s, void *buf, size_t len, int flags);
-    int (*recvmsg)    (int s, struct msghdr *msg, int flags);
-    int (*recvfrom)   (int s, void *buf, size_t len, int flags, struct sockaddr *from, socklen_t *fromlen);
-    int (*shutdown)   (int s, int how);
-    int (*ioctl)      (int s, long cmd, void *arg);
-    int (*closesocket)(int s);
+    int     (*socket)     (int domain, int type, int protocol);
+    int     (*bind)       (int s, const struct sockaddr *myaddr, socklen_t addrlen);
+    int     (*listen)     (int s, int backlog);
+    int     (*accept)     (int s, struct sockaddr *addr, socklen_t *addrlen);
+    int     (*connect)    (int s, const struct sockaddr *serv_addr, socklen_t addrlen);
+    int     (*getsockname)(int s, struct sockaddr *localaddr, socklen_t *addrlen);
+    int     (*getpeername)(int s, struct sockaddr *peeraddr, socklen_t *addrlen);
+    int     (*setsockopt) (int s, int level, int optname, const void *optval, socklen_t optlen);
+    int     (*getsockopt) (int s, int level, int optname, void *optval, socklen_t *optlen);
+    ssize_t (*send)       (int s, const void *msg, size_t len, int flags);
+    ssize_t (*sendmsg)    (int s, const struct msghdr *msg, int flags);
+    ssize_t (*sendto)     (int s, const void *msg, size_t len, int flags, const struct sockaddr *to, socklen_t tolen);
+    ssize_t (*recv)       (int s, void *buf, size_t len, int flags);
+    ssize_t (*recvmsg)    (int s, struct msghdr *msg, int flags);
+    ssize_t (*recvfrom)   (int s, void *buf, size_t len, int flags, struct sockaddr *from, socklen_t *fromlen);
+    int     (*shutdown)   (int s, int how);
+    int     (*ioctl)      (int s, unsigned long cmd, ...);
+    int     (*closesocket)(int s);
 
     /* network database name resolving */
     struct hostent *(*gethostbyname)  (const char *name);

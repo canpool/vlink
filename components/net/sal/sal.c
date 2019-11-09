@@ -209,7 +209,7 @@ int sal_accept(int sockfd, struct sockaddr *addr, socklen_t *addrlen)
     return sockfd_client;
 }
 
-int sal_connect(int sockfd, const struct sockaddr *serv_addr, int addrlen)
+int sal_connect(int sockfd, const struct sockaddr *serv_addr, socklen_t addrlen)
 {
     int ret = -1;
     struct net_cb *cb = __sal_netcb_get(sockfd);
@@ -274,9 +274,9 @@ int sal_setsockopt(int sockfd, int level, int optname, const void *optval, sockl
     return ret;
 }
 
-int sal_send(int sockfd, const void *msg, size_t len, int flags)
+ssize_t sal_send(int sockfd, const void *msg, size_t len, int flags)
 {
-    int ret = -1;
+    ssize_t ret = -1;
     struct net_cb *cb = __sal_netcb_get(sockfd);
     if (cb == NULL) {
         return ret;
@@ -287,9 +287,9 @@ int sal_send(int sockfd, const void *msg, size_t len, int flags)
     return ret;
 }
 
-int sal_recv(int sockfd, void *buf, size_t len, int flags)
+ssize_t sal_recv(int sockfd, void *buf, size_t len, int flags)
 {
-    int ret = -1;
+    ssize_t ret = -1;
     struct net_cb *cb = __sal_netcb_get(sockfd);
     if (cb == NULL) {
         return ret;
@@ -300,9 +300,9 @@ int sal_recv(int sockfd, void *buf, size_t len, int flags)
     return ret;
 }
 
-int sal_sendto(int sockfd, const void *msg, size_t len, int flags, const struct sockaddr *dst_addr, socklen_t addrlen)
+ssize_t sal_sendto(int sockfd, const void *msg, size_t len, int flags, const struct sockaddr *dst_addr, socklen_t addrlen)
 {
-    int ret = -1;
+    ssize_t ret = -1;
     struct net_cb *cb = __sal_netcb_get(sockfd);
     if (cb == NULL) {
         return ret;
@@ -313,9 +313,9 @@ int sal_sendto(int sockfd, const void *msg, size_t len, int flags, const struct 
     return ret;
 }
 
-int sal_recvfrom(int sockfd, void *buf, size_t len, int flags, struct sockaddr *src_addr, socklen_t *fromlen)
+ssize_t sal_recvfrom(int sockfd, void *buf, size_t len, int flags, struct sockaddr *src_addr, socklen_t *fromlen)
 {
-    int ret = -1;
+    ssize_t ret = -1;
     struct net_cb *cb = __sal_netcb_get(sockfd);
     if (cb == NULL) {
         return ret;
@@ -326,9 +326,9 @@ int sal_recvfrom(int sockfd, void *buf, size_t len, int flags, struct sockaddr *
     return ret;
 }
 
-int sal_sendmsg(int sockfd, const struct msghdr *msg, int flags)
+ssize_t sal_sendmsg(int sockfd, const struct msghdr *msg, int flags)
 {
-    int ret = -1;
+    ssize_t ret = -1;
     struct net_cb *cb = __sal_netcb_get(sockfd);
     if (cb == NULL) {
         return ret;
@@ -339,9 +339,9 @@ int sal_sendmsg(int sockfd, const struct msghdr *msg, int flags)
     return ret;
 }
 
-int sal_recvmsg(int sockfd, struct msghdr *msg, int flags)
+ssize_t sal_recvmsg(int sockfd, struct msghdr *msg, int flags)
 {
-    int ret = -1;
+    ssize_t ret = -1;
     struct net_cb *cb = __sal_netcb_get(sockfd);
     if (cb == NULL) {
         return ret;
@@ -381,7 +381,7 @@ int sal_closesocket(int sockfd)
     return ret;
 }
 
-int sal_ioctl(int sockfd, long cmd, void *arg)
+int sal_ioctl(int sockfd, unsigned long cmd, void *arg)
 {
     int ret = -1;
     struct net_cb *cb = __sal_netcb_get(sockfd);

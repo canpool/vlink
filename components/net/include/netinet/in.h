@@ -26,10 +26,6 @@ extern "C" {
 #define socklen_t int
 #endif
 
-//#if !defined (ssize_t) && !defined(__ssize_t_defined) && !defined(_SSIZE_T)
-//#define ssize_t   int
-//#endif
-
 #ifndef sa_family_t
 #define sa_family_t  uint16_t
 #endif

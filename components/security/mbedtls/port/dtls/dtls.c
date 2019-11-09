@@ -16,6 +16,8 @@
 #include "dtls.h"
 #include "vos.h"
 
+#include <string.h>
+
 static inline uint32_t dtls_get_time(void)
 {
     return (uint32_t)(vos_sys_time() / 10);
@@ -36,7 +38,9 @@ dtls_context *dtls_create(dtls_config_info *info)
     mbedtls_entropy_context         *entropy = NULL;
     mbedtls_ctr_drbg_context        *ctr_drbg = NULL;
     mbedtls_timing_delay_context    *timer = NULL;
+#if defined(MBEDTLS_SSL_SRV_C)
     mbedtls_ssl_cookie_ctx          *cookie_ctx = NULL;
+#endif
 #if defined(MBEDTLS_X509_CRT_PARSE_C)
     mbedtls_x509_crt *cacert;
 #endif
@@ -370,10 +374,10 @@ int dtls_read(dtls_context *ctx, char *buf, size_t len, uint32_t timeout)
 {
     int ret;
 
-    mbedtls_ssl_conf_read_timeout(ctx->ssl.conf, timeout);
+    mbedtls_ssl_conf_read_timeout((mbedtls_ssl_config *)ctx->ssl.conf, timeout);
 
     do {
-        ret = mbedtls_ssl_read(&ctx->ssl, buf, len);
+        ret = mbedtls_ssl_read(&ctx->ssl, (unsigned char *)buf, len);
     } while (ret == MBEDTLS_ERR_SSL_WANT_READ || ret == MBEDTLS_ERR_SSL_WANT_WRITE);
 
     return ret;

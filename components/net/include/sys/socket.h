@@ -1,21 +1,22 @@
 /**
- * SPDX-License-Identifier: Apache License 2.0
+ * Copyright (c) [2019] maminjie <canpool@163.com>
  *
- *  Copyright (C) 2019 maminjie <canpool@163.com>
- *  All rights reserved.
- *  Contact: https://github.com/canpool
+ * vlink is licensed under the Mulan PSL v1.
+ * You can use this software according to the terms and conditions of the Mulan PSL v1.
+ * You may obtain a copy of Mulan PSL v1 at:
  *
- * Change Logs:
- * Date         Author          Notes
- * 2019-09-14   maminjie        Created file
- * 2019-09-20   maminjie        Add structs for sendmsg and recvmsg
+ *    http://license.coscl.org.cn/MulanPSL
  *
+ * THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER
+ * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY OR
+ * FIT FOR A PARTICULAR PURPOSE.
+ * See the Mulan PSL v1 for more details.
  */
+
 #ifndef __LINK_SOCKET_H__
 #define __LINK_SOCKET_H__
 
-#include <stdint.h>
-#include <stddef.h>
+#include <sys/types.h>
 
 #ifdef __cplusplus
 extern "C" {

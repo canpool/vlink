@@ -237,8 +237,8 @@ int mbedtls_net_accept(mbedtls_net_context *bind_ctx, mbedtls_net_context *clien
     struct sockaddr_in client_addr;
 
     int type;
-    int n = (int)sizeof(client_addr);
-    int type_len = (int)sizeof(type);
+    socklen_t n = (socklen_t)sizeof(client_addr);
+    socklen_t type_len = (socklen_t)sizeof(type);
 
     /* Is this a TCP or UDP socket? */
     if (sal_getsockopt(bind_ctx->fd, SOL_SOCKET, SO_TYPE, (void *)&type, &type_len) != 0 ||
