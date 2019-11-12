@@ -1,0 +1,2 @@
+paho.mqtt.embedded-c-master
+	commit 29ab2aa29c5e47794284376d7f8386cfd54c3eed
