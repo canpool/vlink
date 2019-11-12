@@ -13,14 +13,9 @@
 # * See the Mulan PSL v1 for more details.
 # */
 
-ifeq ($(CONFIG_COAP_TYPE), libcoap)
-	LIBCOAP_DIR = $(COAP_DIR)/libcoap
-	include $(LIBCOAP_DIR)/libcoap.mk
+ifeq ($(CONFIG_CLOUD_TYPE), oc)
+	OC_DIR = $(CLOUD_DIR)/oc
+	include $(OC_DIR)/oc.mk
 else
-	$(error "please config coap type")
+	$(error "please config cloud type")
 endif
-
-COAP_AL_DIR = $(COAP_DIR)/coap_al
-C_SOURCES += ${wildcard $(COAP_AL_DIR)/*.c}
-C_INCLUDES += -I $(COAP_AL_DIR)
-C_DEFS += -D CONFIG_COAP=1

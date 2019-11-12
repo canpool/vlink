@@ -24,6 +24,9 @@
 #include "sal_linux.h"
 #endif
 
+#ifdef WITH_DTLS
+#include "dtls.h"
+#endif
 int vlink_init(void)
 {
 #if CONFIG_OS
@@ -42,7 +45,24 @@ int vlink_init(void)
     return 0;
 }
 
-int vlink_main(void)
+int vlink_main(void *args)
 {
+#ifdef WITH_DTLS
+    dtls_init();
+#endif
+#if CONFIG_COAP_LIBCOAP
+    #include <libcoap_port.h>
+    coap_install_libcoap();
+#else
+#error "please config coap type"
+#endif
+#if CONFIG_OC_COAP
+    #include "agent_coap.h"
+    oc_coap_install_agent();
+#endif
+#if CONFIG_DEMOS
+    extern int standard_app_demo_main();
+    standard_app_demo_main();
+#endif
     return 0;
 }

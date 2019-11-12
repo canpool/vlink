@@ -36,6 +36,11 @@ endif
 CONNECTIVITY_DIR = $(COMPONENTS_DIR)/connectivity
 include $(CONNECTIVITY_DIR)/connectivity.mk
 
+ifeq ($(CONFIG_CLOUD), y)
+	CLOUD_DIR = $(COMPONENTS_DIR)/cloud
+	include $(CLOUD_DIR)/cloud.mk
+endif
+
 C_SOURCES += \
 	${wildcard $(COMPONENTS_DIR)/log/*.c} \
 	${wildcard $(COMPONENTS_DIR)/misc/*.c} \

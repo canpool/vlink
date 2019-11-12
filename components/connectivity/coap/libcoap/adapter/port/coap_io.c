@@ -528,7 +528,7 @@ coap_network_send(coap_socket_t *sock, const coap_session_t *session, const uint
     bytes_written = (ssize_t)datalen;
   } else if (sock->flags & COAP_SOCKET_CONNECTED) {
 #ifdef WITH_DTLS
-    bytes_written = dtls_write((dtls_context *)(session->context->dtls_context), data, datalen);
+    bytes_written = dtls_write((dtls_context *)(session->context->dtls_context), (const char *)data, datalen);
 #else
     bytes_written = sal_send(sock->fd, data, datalen, 0);
 #endif
@@ -682,7 +682,7 @@ coap_network_read(coap_socket_t *sock, const coap_session_t *session, coap_packe
 
   if (sock->flags & COAP_SOCKET_CONNECTED) {
 #ifdef WITH_DTLS
-    len = dtls_read((dtls_context *)(session->context->dtls_context), packet->payload, COAP_RXBUFFER_SIZE, 1000);
+    len = dtls_read((dtls_context *)(session->context->dtls_context), (char *)packet->payload, COAP_RXBUFFER_SIZE, 1000);
 #else
     len = sal_recv(sock->fd, packet->payload, COAP_RXBUFFER_SIZE, 0);
 #endif

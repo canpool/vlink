@@ -21,7 +21,7 @@ extern "C" {
 #endif /* __cplusplus */
 
 int vlink_init(void);
-int vlink_main(void);
+int vlink_main(void *args);
 
 #ifdef __cplusplus
 }

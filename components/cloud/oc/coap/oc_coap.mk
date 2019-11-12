@@ -13,14 +13,14 @@
 # * See the Mulan PSL v1 for more details.
 # */
 
-ifeq ($(CONFIG_COAP_TYPE), libcoap)
-	LIBCOAP_DIR = $(COAP_DIR)/libcoap
-	include $(LIBCOAP_DIR)/libcoap.mk
-else
-	$(error "please config coap type")
-endif
+OC_COAP_SRC = \
+	${wildcard $(OC_COAP_DIR)/*.c} \
+	${wildcard $(OC_COAP_DIR)/agent/*.c}
+C_SOURCES += $(OC_COAP_SRC)
 
-COAP_AL_DIR = $(COAP_DIR)/coap_al
-C_SOURCES += ${wildcard $(COAP_AL_DIR)/*.c}
-C_INCLUDES += -I $(COAP_AL_DIR)
-C_DEFS += -D CONFIG_COAP=1
+OC_COAP_INC = \
+	-I $(OC_COAP_DIR) \
+	-I $(OC_COAP_DIR)/agent
+C_INCLUDES += $(OC_COAP_INC)
+
+C_DEFS += -D CONFIG_OC_COAP=1

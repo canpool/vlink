@@ -14,10 +14,8 @@
 # */
 
 LIBCOAP_BASE_DIR    = $(LIBCOAP_DIR)/libcoap-4.2.0
-LIBCOAP_ADAPTER_DIR	= $(LIBCOAP_DIR)/adapter
 
 LIBCOAP_SRC_DIR = $(LIBCOAP_BASE_DIR)/src
-LIBCOAP_PORT_DIR = $(LIBCOAP_ADAPTER_DIR)/port
 
 LIBCOAP_SRC = \
 		${wildcard $(LIBCOAP_SRC_DIR)/address.c} \
@@ -53,15 +51,16 @@ LIBCOAP_SRC += \
 		${wildcard $(LIBCOAP_SRC_DIR)/coap_notls.c}
 endif
 
-LIBCOAP_SRC += \
-		${wildcard $(LIBCOAP_PORT_DIR)/*.c}
-
-C_SOURCES += $(LIBCOAP_SRC)
-
 LIBCOAP_INC = \
 		-I $(LIBCOAP_BASE_DIR) \
 		-I $(LIBCOAP_BASE_DIR)/include \
-		-I $(LIBCOAP_BASE_DIR)/include/coap2 \
-		-I $(LIBCOAP_PORT_DIR)
+		-I $(LIBCOAP_BASE_DIR)/include/coap2
 
+# adapter
+LIBCOAP_ADAPTER_DIR	= $(LIBCOAP_DIR)/adapter
+include $(LIBCOAP_ADAPTER_DIR)/adapter.mk
+
+C_SOURCES += $(LIBCOAP_SRC)
 C_INCLUDES += $(LIBCOAP_INC)
+
+C_DEFS += -D CONFIG_COAP_LIBCOAP=1
