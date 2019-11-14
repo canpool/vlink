@@ -50,19 +50,25 @@ int vlink_main(void *args)
 #ifdef WITH_DTLS
     dtls_init();
 #endif
+
+#if CONFIG_COAP
 #if CONFIG_COAP_LIBCOAP
     #include <libcoap_port.h>
     coap_install_libcoap();
 #else
 #error "please config coap type"
 #endif
+#endif // CONFIG_COAP
+
 #if CONFIG_OC_COAP
     #include "agent_coap.h"
     oc_coap_install_agent();
 #endif
+
 #if CONFIG_DEMOS
     extern int standard_app_demo_main();
     standard_app_demo_main();
 #endif
+
     return 0;
 }
