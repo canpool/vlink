@@ -20,7 +20,7 @@
 extern "C" {
 #endif /* __cplusplus */
 
-#define CONFIG_ECDSA_PUBKEY_LEN 65 /* public key  (X+Y+Z), uncompressed */
+#define CONFIG_ECDSA_PUBKEY_LEN 64 /* public key (X+Y) */
 #define CONFIG_ECDSA_PRIKEY_LEN 32 /* private key */
 #define CONFIG_ECDSA_SIG_LEN    64 /* raw signature (r+s), not encoded by ANS.1 */
 

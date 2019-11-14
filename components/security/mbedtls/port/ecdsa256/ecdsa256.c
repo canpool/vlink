@@ -108,9 +108,14 @@ int ecdsa_gen_keypair(unsigned char public_key[CONFIG_ECDSA_PUBKEY_LEN],
         return -1;
     }
 
-    if((ret = mbedtls_ecp_point_write_binary( &s_ctx->ecdsa.grp, &s_ctx->ecdsa.Q,
-                MBEDTLS_ECP_PF_UNCOMPRESSED, &len, public_key, CONFIG_ECDSA_PUBKEY_LEN)) != 0 )
-    {
+    ret = mbedtls_mpi_write_binary(&s_ctx->ecdsa.Q.X, public_key, CONFIG_ECDSA_PUBKEY_LEN / 2);
+    if (ret != 0) {
+        mbedtls_printf(" failed\n  ! mbedtls_mpi_write_binary returned %d\n", ret);
+        return -1;
+    }
+    ret = mbedtls_mpi_write_binary(&s_ctx->ecdsa.Q.Y, public_key + CONFIG_ECDSA_PUBKEY_LEN / 2,
+                                   CONFIG_ECDSA_PUBKEY_LEN / 2);
+    if (ret != 0) {
         mbedtls_printf(" failed\n  ! mbedtls_mpi_write_binary returned %d\n", ret);
         return -1;
     }
@@ -228,7 +233,18 @@ int ecdsa_verify(unsigned char peer_public_key[CONFIG_ECDSA_PUBKEY_LEN], unsigne
         return -1;
     }
 
-    ret = mbedtls_ecp_point_read_binary(&s_ctx->ecdsa.grp, &s_ctx->ecdsa.Q, peer_public_key, CONFIG_ECDSA_PUBKEY_LEN);
+    ret = mbedtls_mpi_lset(&s_ctx->ecdsa.Q.Z, 1);
+    if (ret != 0) {
+        mbedtls_printf(" failed\n  ! mbedtls_mpi_lset returned %d\n", ret);
+        return -1;
+    }
+    ret = mbedtls_mpi_read_binary(&s_ctx->ecdsa.Q.X, peer_public_key, CONFIG_ECDSA_PUBKEY_LEN / 2);
+    if (ret != 0) {
+        mbedtls_printf(" failed\n  ! mbedtls_mpi_read_binary returned %d\n", ret);
+        return -1;
+    }
+    ret = mbedtls_mpi_read_binary(&s_ctx->ecdsa.Q.Y, peer_public_key + CONFIG_ECDSA_PUBKEY_LEN / 2,
+                                  CONFIG_ECDSA_PUBKEY_LEN / 2);
     if (ret != 0) {
         mbedtls_printf(" failed\n  ! mbedtls_mpi_read_binary returned %d\n", ret);
         return -1;
