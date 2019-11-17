@@ -319,7 +319,7 @@ const oc_ops_t  s_oc_coap_agent = {
     .report     = agent_op_report,
 };
 
-int oc_coap_install_agent(void)
+int oc_coap_setup(void)
 {
     return oc_coap_register("oc_coap_agent" ,&s_oc_coap_agent);
 }

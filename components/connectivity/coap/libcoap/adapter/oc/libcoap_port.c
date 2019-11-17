@@ -888,7 +888,7 @@ static coap_al_ops_t s_libcoap_ops = {
     .recv = __recv,
 };
 
-int coap_install_libcoap()
+int coap_setup(void)
 {
     return coap_al_install(&s_libcoap_ops);
 }

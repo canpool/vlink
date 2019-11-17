@@ -51,7 +51,7 @@ extern "C" {
 
 int agent_errno_get(void);
 
-int oc_coap_install_agent(void);
+int oc_coap_setup(void);
 
 #ifdef __cplusplus
 }

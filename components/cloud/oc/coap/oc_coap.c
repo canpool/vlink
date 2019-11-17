@@ -26,7 +26,6 @@ typedef struct {
 typedef struct {
     uintptr_t       handle;
     const oc_ops_t *ops;
-    oc_config_t     config;
 } oc_coap_context_t;
 
 static oc_coap_t s_coap;
@@ -51,7 +50,6 @@ int oc_coap_init(oc_context_t *ctx, oc_config_t *config)
         vos_free(oc_coap);
         return -1;
     }
-    oc_coap->config = *config;
     oc_coap->ops = s_coap.ops;
     *ctx = (oc_context_t)oc_coap;
 

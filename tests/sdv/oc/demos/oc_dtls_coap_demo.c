@@ -211,7 +211,7 @@ static int app_report_task_entry()
     return ret;
 }
 
-int standard_app_demo_main()
+int standard_app_demo_main(void)
 {
     vos_sem_init(&s_rcv_sync, 1, 0);
 

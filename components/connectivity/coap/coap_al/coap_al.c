@@ -14,7 +14,6 @@
  */
 
 #include "coap_al.h"
-#include "vos.h"
 
 typedef struct {
     const coap_al_ops_t   *ops;
