@@ -55,6 +55,7 @@ int vos_task_create(vtask_t *task, const char *name, int (*entry)(uintptr_t arg)
     pthread_t pid;
 
     if (pthread_create(&pid, NULL, (pthread_entry)entry, (void *)arg) != 0) {
+        *task = V_TASK_INVALID;
         return -1;
     }
     pthread_detach(pid);
@@ -62,14 +63,15 @@ int vos_task_create(vtask_t *task, const char *name, int (*entry)(uintptr_t arg)
     return 0;
 }
 
-int vos_task_delete(vtask_t task)
+int vos_task_delete(vtask_t *task)
 {
-    pthread_t pid = (pthread_t)task;
+    pthread_t pid = (pthread_t)(*task);
 
     if (pthread_cancel(pid) != 0) {
         return -1;
     }
     pthread_exit(NULL);
+    *task = V_TASK_INVALID;
     return 0;
 }
 
@@ -112,12 +114,14 @@ int vos_mutex_init(vmutex_t *mutex)
     return 0;
 }
 
-int vos_mutex_destroy(vmutex_t mutex)
+int vos_mutex_destroy(vmutex_t *mutex)
 {
-    if (pthread_mutex_destroy((pthread_mutex_t *)mutex) != 0) {
+    pthread_mutex_t *m = (pthread_mutex_t *)(*mutex);
+    if (pthread_mutex_destroy(m) != 0) {
         return -1;
     }
-    free((pthread_mutex_t *)mutex);
+    free(m);
+    *mutex = V_MUTEX_INVALID;
     return 0;
 }
 
@@ -164,12 +168,14 @@ int vos_sem_init(vsem_t *sem, int limit, int value)
     return 0;
 }
 
-int vos_sem_destroy(vsem_t sem)
+int vos_sem_destroy(vsem_t *sem)
 {
-    if (sem_destroy((sem_t *)sem) != 0) {
+    sem_t *s = (sem_t *)(*sem);
+    if (sem_destroy(s) != 0) {
         return -1;
     }
-    free((sem_t *)sem);
+    free(s);
+    *sem = V_SEM_INVALID;
     return 0;
 }
 
@@ -202,7 +208,7 @@ int vos_event_init(vevent_t *event)
     return -1;
 }
 
-int vos_event_destroy(vevent_t event)
+int vos_event_destroy(vevent_t *event)
 {
     return -1;
 }
@@ -272,9 +278,9 @@ int vos_mq_create(vmq_t *mq, const char *name, size_t msg_size, size_t max_msgs,
     return 0;
 }
 
-int vos_mq_delete(vmq_t mq)
+int vos_mq_delete(vmq_t *mq)
 {
-    vmqueue_t *q = (vmqueue_t *)mq;
+    vmqueue_t *q = (vmqueue_t *)(*mq);
     if (q == NULL || q->name == NULL) {
         return -1;
     }
@@ -283,6 +289,7 @@ int vos_mq_delete(vmq_t mq)
     }
     mq_unlink(q->name);
     free(q);
+    *mq = V_MQ_INVALID;
 
     return 0;
 }

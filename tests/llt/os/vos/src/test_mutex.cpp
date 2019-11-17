@@ -68,5 +68,5 @@ TEST_F(TestMutex, simple)
 
     vprintf("test pass...\n");
 
-    vos_mutex_destroy(m0);
+    vos_mutex_destroy(&m0);
 }

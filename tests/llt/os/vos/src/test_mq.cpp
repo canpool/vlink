@@ -52,5 +52,5 @@ TEST_F(TestMQ, simple)
         }
     }
 
-    vos_mq_delete(mq);
+    vos_mq_delete(&mq);
 }

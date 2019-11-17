@@ -51,5 +51,5 @@ TEST_F(TestTask, simple)
     vos_task_sleep(10);
     vprintf("test pass...\n");
 
-    vos_mutex_destroy(m0);
+    vos_mutex_destroy(&m0);
 }

@@ -65,5 +65,5 @@ TEST_F(TestSem, simple)
 
     vprintf("test pass...\n");
 
-    vos_sem_destroy(s0);
+    vos_sem_destroy(&s0);
 }

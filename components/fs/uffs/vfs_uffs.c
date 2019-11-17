@@ -14,7 +14,6 @@
  */
 
 #include "vfs_uffs.h"
-#include "vfs.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -23,6 +22,8 @@
 #include "uffs/uffs_fd.h"
 #include "uffs/uffs_mtb.h"
 #include "uffs/uffs_public.h"
+
+#include "vfs.h"
 
 static int ufd_from_file(struct file *file)
 {

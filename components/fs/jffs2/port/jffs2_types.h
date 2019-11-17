@@ -27,7 +27,7 @@
 extern "C" {
 #endif /* __cplusplus */
 
-#if (CONFIG_LINUX_ENABLE || CONFIG_MACOS_ENABLE)
+#if (CONFIG_LINUX || CONFIG_MACOS)
 #include "sys/types.h"
 #else
 typedef unsigned short  nlink_t;

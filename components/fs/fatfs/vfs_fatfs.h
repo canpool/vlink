@@ -16,8 +16,8 @@
 #ifndef __VFS_FATFS_H__
 #define __VFS_FATFS_H__
 
-#include "diskio.h"
 #include "ff.h"
+#include "diskio.h"
 #include <stdint.h>
 
 #ifdef __cplusplus

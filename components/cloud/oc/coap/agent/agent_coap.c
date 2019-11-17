@@ -265,7 +265,7 @@ static int agent_op_destroy(uintptr_t handle)
 {
     agent_coap_t *agent = (agent_coap_t *)handle;
 
-    if (agent != NULL) {
+    if (agent == NULL) {
         return -1;
     }
     /* set agent to stop send data */
@@ -273,9 +273,9 @@ static int agent_op_destroy(uintptr_t handle)
     /* wait agent data process task finish recieve data and exit */
     vos_task_sleep(1000);
 
-    vos_task_delete(agent->task);
-    agent->task = V_TASK_INVALID;
+    vos_task_delete(&agent->task);
 
+    vos_free(agent);
     s_agent_coap = NULL;
 
     return 0;

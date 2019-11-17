@@ -42,8 +42,8 @@ int uffs_SemSignal(OSSEM sem)
 
 int uffs_SemDelete(OSSEM *sem)
 {
-    vos_mutex_destroy((vmutex_t)(*sem));
-    *sem = 0;
+    vos_mutex_destroy((vmutex_t *)sem);
+    *sem = (OSSEM)V_SEM_INVALID;
     return 0;
 }
 

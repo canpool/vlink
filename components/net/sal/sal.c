@@ -115,8 +115,7 @@ int sal_init(int socknum)
 
     s_domain_cb.net_cb_tab = vos_malloc(socknum * sizeof(void *));
     if (s_domain_cb.net_cb_tab == NULL) {
-        vos_mutex_destroy(s_domain_cb.net_cb_mutex);
-        s_domain_cb.net_cb_mutex = V_MUTEX_INVALID;
+        vos_mutex_destroy(&s_domain_cb.net_cb_mutex);
         return -1;
     }
 

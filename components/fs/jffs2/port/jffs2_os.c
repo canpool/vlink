@@ -39,7 +39,7 @@ int jffs2_mutex_unlock(jffs2_mutex_t *mutex)
 
 int jffs2_mutex_release(jffs2_mutex_t *mutex)
 {
-    int ret = vos_mutex_destroy(mutex->mux);
+    int ret = vos_mutex_destroy(&mutex->mux);
     if (ret == 0) {
         mutex->mux = V_MUTEX_INVALID;
     }
@@ -93,11 +93,7 @@ uint32_t jffs2_flag_timed_wait(jffs2_flag_t *flag, uint32_t pattern, uint32_t mo
 
 int jffs2_flag_destroy(jffs2_flag_t *flag)
 {
-    int ret = vos_event_destroy(flag->event);
-    if (ret == 0) {
-        flag->event = V_EVENT_INVALID;
-    }
-    return ret;
+    return vos_event_destroy(&flag->event);
 }
 
 int jffs2_thread_new(jffs2_thread_t *thread, char *name, jffs2_thread_fn function,
@@ -108,6 +104,6 @@ int jffs2_thread_new(jffs2_thread_t *thread, char *name, jffs2_thread_fn functio
 
 int jffs2_thread_delete(jffs2_thread_t *thread)
 {
-    return vos_task_delete(thread->task);
+    return vos_task_delete(&thread->task);
 }
 
