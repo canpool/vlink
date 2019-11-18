@@ -17,7 +17,8 @@ MBEDTLS_BASE_DIR = $(MBEDTLS_DIR)/mbedtls-2.16.2
 MBEDTLS_PORT_DIR = $(MBEDTLS_DIR)/port
 
 MBEDTLS_SRC = \
-        ${wildcard $(MBEDTLS_BASE_DIR)/library/*.c}
+        ${wildcard $(MBEDTLS_BASE_DIR)/library/*.c} \
+        ${wildcard $(MBEDTLS_PORT_DIR)/vsl/*.c}
 
 MBEDTLS_INC = \
         -I $(MBEDTLS_BASE_DIR)/include

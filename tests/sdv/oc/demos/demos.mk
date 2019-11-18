@@ -53,8 +53,14 @@ ifeq ($(CONFIG_DEMO), y)
     	STANDARD_DEMOS_SOURCE  := $(DEMOS_DIR)/oc_coap_demo.c
     else ifeq ($(CONFIG_DEMO_TYPE), oc_dtls_coap_demo)
     	STANDARD_DEMOS_SOURCE  := $(DEMOS_DIR)/oc_dtls_coap_demo.c
+    else ifeq ($(CONFIG_DEMO_TYPE), oc_tls_mqtt_bs_demo)
+        C_DEFS += -D CONFIG_HMAC=1 -D LWM2M_BOOTSTRAP=1
+    	STANDARD_DEMOS_SOURCE  := $(DEMOS_DIR)/oc_tls_mqtt_bs_demo.c
+    else ifeq ($(CONFIG_DEMO_TYPE), oc_tls_mqtt_demo)
+        C_DEFS += -D CONFIG_HMAC=1
+    	STANDARD_DEMOS_SOURCE  := $(DEMOS_DIR)/oc_tls_mqtt_demo.c
     else
- 		$(error "please config demo type")
+        $(error "please config demo type")
     endif
 
     C_DEFS += -D CONFIG_DEMOS=1

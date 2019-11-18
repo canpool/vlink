@@ -19,20 +19,27 @@ CONFIG_OS_TYPE              := linux
 CONFIG_NET                  := y
 CONFIG_NET_TYPE             := linux
 
-CONFIG_COAP                 := y
+CONFIG_COAP                 := n
 CONFIG_COAP_TYPE            := libcoap
 
+CONFIG_MQTT                 := y
+CONFIG_MQTT_TYPE            := paho
+
+CONFIG_JSON                 := y
+
+# coap, mqtt
 CONFIG_CLOUD                := y
 CONFIG_CLOUD_TYPE           := oc
-CONFIG_CLOUD_PROTO_TYPE     := coap
+CONFIG_CLOUD_PROTO_TYPE     := mqtt
 
-CONFIG_SECURITY				:= n
-CONFIG_SECURITY_TYPE		:= mbedtls
-CONFIG_DTLS					:= y
-CONFIG_DTLS_TYPE			:= psk
+# psk, cert
+CONFIG_SECURITY             := y
+CONFIG_SECURITY_TYPE        := mbedtls
+CONFIG_DTLS                 := y
+CONFIG_DTLS_TYPE            := cert
 
-# oc_coap_demo, oc_dtls_coap_demo
+# oc_coap_demo, oc_dtls_coap_demo, oc_tls_mqtt_bs_demo, oc_tls_mqtt_demo
 CONFIG_DEMO                 := y
-CONFIG_DEMO_TYPE            := oc_coap_demo
+CONFIG_DEMO_TYPE            := oc_tls_mqtt_demo
 
 include $(ROOT_DIR)/vlink.mk

@@ -17,3 +17,8 @@ ifeq ($(CONFIG_COAP), y)
 	COAP_DIR = $(CONNECTIVITY_DIR)/coap
 	include $(COAP_DIR)/coap.mk
 endif
+
+ifeq ($(CONFIG_MQTT), y)
+	MQTT_DIR = $(CONNECTIVITY_DIR)/mqtt
+	include $(MQTT_DIR)/mqtt.mk
+endif

@@ -41,6 +41,9 @@ ifeq ($(CONFIG_CLOUD), y)
 	include $(CLOUD_DIR)/cloud.mk
 endif
 
+PARSER_DIR = $(COMPONENTS_DIR)/parser
+include $(PARSER_DIR)/parser.mk
+
 C_SOURCES += \
 	${wildcard $(COMPONENTS_DIR)/log/*.c} \
 	${wildcard $(COMPONENTS_DIR)/misc/*.c} \

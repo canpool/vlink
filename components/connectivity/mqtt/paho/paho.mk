@@ -13,22 +13,22 @@
 # * See the Mulan PSL v1 for more details.
 # */
 
-MBEDTLS_DTLS_SRC = \
-        ${wildcard $(MBEDTLS_DTLS_DIR)/*.c}
+PAHO_MQTT_BASE_DIR 	 = $(PAHO_DIR)/paho.mqtt.embedded-c
 
-MBEDTLS_DTLS_INC = \
-        -I $(MBEDTLS_DTLS_DIR)
+PAHO_MQTT_CLIENT_DIR = $(PAHO_MQTT_BASE_DIR)/MQTTClient-C/src
+PAHO_MQTT_PACKET_DIR = $(PAHO_MQTT_BASE_DIR)/MQTTPacket/src
 
-MBEDTLS_DTLS_DEF = -D WITH_DTLS
+PAHO_MQTT_SRC = \
+		${wildcard $(PAHO_MQTT_CLIENT_DIR)/*.c} \
+		${wildcard $(PAHO_MQTT_PACKET_DIR)/*.c}
 
-ifeq ($(CONFIG_DTLS_TYPE), psk)
-    MBEDTLS_DTLS_DEF += -D MBEDTLS_CONFIG_FILE=\"mbedtls_config_psk.h\"
-else ifeq ($(CONFIG_DTLS_TYPE), cert)
-    MBEDTLS_DTLS_DEF += -D MBEDTLS_CONFIG_FILE=\"mbedtls_config_cert.h\"
-else
-    $(error "please config dtls type")
-endif
+PAHO_MQTT_INC = \
+		-I $(PAHO_MQTT_CLIENT_DIR)	\
+		-I $(PAHO_MQTT_PACKET_DIR)
 
-C_SOURCES += $(MBEDTLS_DTLS_SRC)
-C_INCLUDES += $(MBEDTLS_DTLS_INC)
-C_DEFS += $(MBEDTLS_DTLS_DEF)
+# adapter
+PAHO_MQTT_ADAPTER_DIR = $(PAHO_DIR)/adapter
+include $(PAHO_MQTT_ADAPTER_DIR)/adapter.mk
+
+C_SOURCES  += $(PAHO_MQTT_SRC)
+C_INCLUDES += $(PAHO_MQTT_INC)

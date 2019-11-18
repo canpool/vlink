@@ -80,6 +80,17 @@ void MQTTClientInit(MQTTClient* c, Network* network, unsigned int command_timeou
 }
 
 
+void MQTTClientDeInit(MQTTClient *c)
+{
+    if(!c)
+        return;
+#if defined(MQTT_TASK)
+    MutexDestory(&c->mutex);
+#endif
+    return;
+}
+
+
 static int decodePacket(MQTTClient* c, int* value, int timeout)
 {
     unsigned char i;
@@ -191,6 +202,7 @@ int deliverMessage(MQTTClient* c, MQTTString* topicName, MQTTMessage* message)
             {
                 MessageData md;
                 NewMessageData(&md, topicName, message);
+                md.arg = c->messageHandlers[i].arg;
                 c->messageHandlers[i].fp(&md);
                 rc = SUCCESS;
             }
@@ -472,7 +484,7 @@ int MQTTConnect(MQTTClient* c, MQTTPacket_connectData* options)
 }
 
 
-int MQTTSetMessageHandler(MQTTClient* c, const char* topicFilter, messageHandler messageHandler)
+int MQTTSetMessageHandler(MQTTClient* c, const char* topicFilter, messageHandler messageHandler, void* arg)
 {
     int rc = FAILURE;
     int i = -1;
@@ -486,6 +498,7 @@ int MQTTSetMessageHandler(MQTTClient* c, const char* topicFilter, messageHandler
             {
                 c->messageHandlers[i].topicFilter = NULL;
                 c->messageHandlers[i].fp = NULL;
+                c->messageHandlers[i].arg = NULL;
             }
             rc = SUCCESS; /* return i when adding new subscription */
             break;
@@ -508,6 +521,7 @@ int MQTTSetMessageHandler(MQTTClient* c, const char* topicFilter, messageHandler
         {
             c->messageHandlers[i].topicFilter = topicFilter;
             c->messageHandlers[i].fp = messageHandler;
+            c->messageHandlers[i].arg = arg;
         }
     }
     return rc;
@@ -515,7 +529,7 @@ int MQTTSetMessageHandler(MQTTClient* c, const char* topicFilter, messageHandler
 
 
 int MQTTSubscribeWithResults(MQTTClient* c, const char* topicFilter, enum QoS qos,
-       messageHandler messageHandler, MQTTSubackData* data)
+       messageHandler messageHandler, MQTTSubackData* data, void* arg)
 {
     int rc = FAILURE;
     Timer timer;
@@ -546,7 +560,7 @@ int MQTTSubscribeWithResults(MQTTClient* c, const char* topicFilter, enum QoS qo
         if (MQTTDeserialize_suback(&mypacketid, 1, &count, (int*)&data->grantedQoS, c->readbuf, c->readbuf_size) == 1)
         {
             if (data->grantedQoS != 0x80)
-                rc = MQTTSetMessageHandler(c, topicFilter, messageHandler);
+                rc = MQTTSetMessageHandler(c, topicFilter, messageHandler, arg);
         }
     }
     else
@@ -566,7 +580,7 @@ int MQTTSubscribe(MQTTClient* c, const char* topicFilter, enum QoS qos,
        messageHandler messageHandler)
 {
     MQTTSubackData data;
-    return MQTTSubscribeWithResults(c, topicFilter, qos, messageHandler, &data);
+    return MQTTSubscribeWithResults(c, topicFilter, qos, messageHandler, &data, NULL);
 }
 
 
@@ -598,7 +612,7 @@ int MQTTUnsubscribe(MQTTClient* c, const char* topicFilter)
         if (MQTTDeserialize_unsuback(&mypacketid, c->readbuf, c->readbuf_size) == 1)
         {
             /* remove the subscription message handler associated with this topic, if there is one */
-            MQTTSetMessageHandler(c, topicFilter, NULL);
+            MQTTSetMessageHandler(c, topicFilter, NULL, NULL);
         }
     }
     else

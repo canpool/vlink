@@ -19,3 +19,11 @@ ifeq ($(CONFIG_SECURITY_TYPE), mbedtls)
 else
 	$(error "please config security type")
 endif
+
+VSL_DIR = $(SECURITY_DIR)/vsl
+
+VSL_SRC = ${wildcard $(VSL_DIR)/*.c}
+C_SOURCES += $(VSL_SRC)
+
+VSL_INC = -I $(VSL_DIR)
+C_INCLUDES += $(VSL_INC)

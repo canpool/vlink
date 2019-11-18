@@ -13,22 +13,14 @@
 # * See the Mulan PSL v1 for more details.
 # */
 
-MBEDTLS_DTLS_SRC = \
-        ${wildcard $(MBEDTLS_DTLS_DIR)/*.c}
+OC_MQTT_SRC = \
+	${wildcard $(OC_MQTT_DIR)/*.c} \
+	${wildcard $(OC_MQTT_DIR)/agent/*.c}
+C_SOURCES += $(OC_MQTT_SRC)
 
-MBEDTLS_DTLS_INC = \
-        -I $(MBEDTLS_DTLS_DIR)
+OC_MQTT_INC = \
+	-I $(OC_MQTT_DIR) \
+	-I $(OC_MQTT_DIR)/agent
+C_INCLUDES += $(OC_MQTT_INC)
 
-MBEDTLS_DTLS_DEF = -D WITH_DTLS
-
-ifeq ($(CONFIG_DTLS_TYPE), psk)
-    MBEDTLS_DTLS_DEF += -D MBEDTLS_CONFIG_FILE=\"mbedtls_config_psk.h\"
-else ifeq ($(CONFIG_DTLS_TYPE), cert)
-    MBEDTLS_DTLS_DEF += -D MBEDTLS_CONFIG_FILE=\"mbedtls_config_cert.h\"
-else
-    $(error "please config dtls type")
-endif
-
-C_SOURCES += $(MBEDTLS_DTLS_SRC)
-C_INCLUDES += $(MBEDTLS_DTLS_INC)
-C_DEFS += $(MBEDTLS_DTLS_DEF)
+C_DEFS += -D CONFIG_OC_MQTT=1

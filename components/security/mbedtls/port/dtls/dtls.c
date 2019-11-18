@@ -77,7 +77,7 @@ dtls_context *dtls_create(dtls_config_info *info)
     if (CONFIG_DTLS_BUF_SIZE <= 0 || CONFIG_DTLS_BUF_SIZE > 2048) {
         context->buf_len = 512;
     }
-    context->buf = (unsigned char *)mbedtls_calloc(1, context->buf_len);
+    context->buf = (char *)mbedtls_calloc(1, context->buf_len);
     if (context->buf == NULL) {
         goto EXIT_FAIL;
     }
@@ -110,8 +110,6 @@ dtls_context *dtls_create(dtls_config_info *info)
         vlog_error("mbedtls_ctr_drbg_seed failed: -0x%x", -ret);
         goto EXIT_FAIL;
     }
-
-    vlog_info("setting up the SSL structure");
 
     if (info->proto == MBEDTLS_NET_PROTO_UDP) {
         ret = mbedtls_ssl_config_defaults(conf, info->endpoint, MBEDTLS_SSL_TRANSPORT_DATAGRAM,
@@ -175,8 +173,6 @@ dtls_context *dtls_create(dtls_config_info *info)
     if (info->proto == MBEDTLS_NET_PROTO_UDP) {
         mbedtls_ssl_set_timer_cb(&context->ssl, timer, mbedtls_timing_set_delay, mbedtls_timing_get_delay);
     }
-
-    vlog_error("set SSL structure succeed");
 
     context->auth_type = info->auth_type;
     context->proto = info->proto;
@@ -282,11 +278,13 @@ void dtls_destroy(dtls_context *ctx)
 
 int dtls_connect(dtls_context *ctx, const char *host, const char *port)
 {
+    if (ctx == NULL) return -1;
     return mbedtls_net_connect(&ctx->c_sock, host, port, ctx->proto);
 }
 
 int dtls_bind(dtls_context *ctx, const char *bind_ip, const char *port)
 {
+    if (ctx == NULL) return -1;
     return mbedtls_net_bind(&ctx->s_sock, bind_ip, port, ctx->proto);
 }
 
@@ -300,10 +298,11 @@ int dtls_handshake(dtls_context *ctx, dtls_handshake_info *info)
 #if defined(MBEDTLS_X509_CRT_PARSE_C)
     unsigned int flags;
 #endif
+    if (ctx == NULL) return -1;
 
     mbedtls_ssl_set_bio(ssl, sock, mbedtls_net_send, mbedtls_net_recv, mbedtls_net_recv_timeout);
 
-    vlog_info("performing the SSL/TLS handshake");
+    vlog_print("performing the SSL/TLS handshake");
 
     max_value =
         ((ssl->conf->endpoint == MBEDTLS_SSL_IS_SERVER || ctx->proto == MBEDTLS_NET_PROTO_UDP)
@@ -342,11 +341,11 @@ int dtls_handshake(dtls_context *ctx, dtls_handshake_info *info)
             vlog_error("cert verify failed: %s", ctx->buf);
             goto EXIT_FAIL;
         } else {
-            vlog_info("cert verify succeed");
+            vlog_print("cert verify succeed");
         }
     }
 #endif
-    vlog_info("handshake succeed");
+    vlog_print("handshake succeed");
 
     return 0;
 
@@ -356,12 +355,15 @@ EXIT_FAIL:
 
 int dtls_accept(dtls_context *ctx, void *client_ip, size_t buf_size, size_t *ip_len)
 {
+    if (ctx == NULL) return -1;
     return mbedtls_net_accept(&ctx->s_sock, &ctx->c_sock, client_ip, buf_size, ip_len);
 }
 
 int dtls_write(dtls_context *ctx, const char *buf, size_t len)
 {
     int ret;
+
+    if (ctx == NULL) return -1;
 
     do {
         ret = mbedtls_ssl_write(&ctx->ssl, (unsigned char *)buf, len);
@@ -373,6 +375,8 @@ int dtls_write(dtls_context *ctx, const char *buf, size_t len)
 int dtls_read(dtls_context *ctx, char *buf, size_t len, uint32_t timeout)
 {
     int ret;
+
+    if (ctx == NULL) return -1;
 
     mbedtls_ssl_conf_read_timeout((mbedtls_ssl_config *)ctx->ssl.conf, timeout);
 
@@ -387,6 +391,8 @@ int dtls_read(dtls_context *ctx, char *buf, size_t len, uint32_t timeout)
 int dtls_close_notify(dtls_context *ctx)
 {
     int ret;
+
+    if (ctx == NULL) return -1;
 
     do {
         ret = mbedtls_ssl_close_notify(&ctx->ssl);

@@ -27,6 +27,7 @@
 #ifdef WITH_DTLS
 #include "dtls.h"
 #endif
+
 int vlink_init(void)
 {
 #if CONFIG_OS
@@ -60,6 +61,17 @@ int vlink_main(void *args)
 #if CONFIG_OC_COAP
     extern int oc_coap_setup(void);
     oc_coap_setup();
+#endif
+
+/* mqtt */
+#if CONFIG_MQTT
+    extern int mqtt_setup(void);
+    mqtt_setup();
+#endif
+
+#if CONFIG_OC_MQTT
+    extern int oc_mqtt_setup(void);
+    oc_mqtt_setup();
 #endif
 
 #if CONFIG_DEMOS

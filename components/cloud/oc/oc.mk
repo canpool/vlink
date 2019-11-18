@@ -16,6 +16,9 @@
 ifeq ($(CONFIG_CLOUD_PROTO_TYPE), coap)
 	OC_COAP_DIR = $(OC_DIR)/coap
 	include $(OC_COAP_DIR)/oc_coap.mk
+else ifeq ($(CONFIG_CLOUD_PROTO_TYPE), mqtt)
+	OC_MQTT_DIR = $(OC_DIR)/mqtt
+	include $(OC_MQTT_DIR)/oc_mqtt.mk
 else
 	$(error "please config cloud protocol type")
 endif

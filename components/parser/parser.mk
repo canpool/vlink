@@ -13,22 +13,7 @@
 # * See the Mulan PSL v1 for more details.
 # */
 
-MBEDTLS_DTLS_SRC = \
-        ${wildcard $(MBEDTLS_DTLS_DIR)/*.c}
-
-MBEDTLS_DTLS_INC = \
-        -I $(MBEDTLS_DTLS_DIR)
-
-MBEDTLS_DTLS_DEF = -D WITH_DTLS
-
-ifeq ($(CONFIG_DTLS_TYPE), psk)
-    MBEDTLS_DTLS_DEF += -D MBEDTLS_CONFIG_FILE=\"mbedtls_config_psk.h\"
-else ifeq ($(CONFIG_DTLS_TYPE), cert)
-    MBEDTLS_DTLS_DEF += -D MBEDTLS_CONFIG_FILE=\"mbedtls_config_cert.h\"
-else
-    $(error "please config dtls type")
+ifeq ($(CONFIG_JSON), y)
+	JSON_DIR = $(PARSER_DIR)/cJSON
+	include $(JSON_DIR)/json.mk
 endif
-
-C_SOURCES += $(MBEDTLS_DTLS_SRC)
-C_INCLUDES += $(MBEDTLS_DTLS_INC)
-C_DEFS += $(MBEDTLS_DTLS_DEF)

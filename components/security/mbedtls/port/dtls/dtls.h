@@ -93,7 +93,7 @@ typedef struct {
     dtls_auth_type      auth_type;
     int                 proto;
 
-    unsigned char      *buf;
+    char               *buf;
     size_t              buf_len;
 } dtls_context;
 
