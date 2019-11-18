@@ -51,6 +51,10 @@ struct hostent *sal_gethostbyname(const char *name);
 int     sal_getaddrinfo(const char *nodename, const char *servname, const struct addrinfo *hints, struct addrinfo **res);
 void    sal_freeaddrinfo(struct addrinfo *ai);
 
+ssize_t sal_timedsend(int sockfd, const void *msg, size_t len, int flags, uint32_t timeout);
+ssize_t sal_timedrecv(int sockfd, void *msg, size_t len, int flags, uint32_t timeout);
+int     sal_sockconnect(int domain, int type, int protocol, const char *host, const char *port);
+
 /* network interface opreations */
 struct net_ops {
     /* network socket */

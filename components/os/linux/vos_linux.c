@@ -67,10 +67,13 @@ int vos_task_delete(vtask_t *task)
 {
     pthread_t pid = (pthread_t)(*task);
 
+    if (*task == V_TASK_INVALID) {
+        return -1;
+    }
+
     if (pthread_cancel(pid) != 0) {
         return -1;
     }
-    pthread_exit(NULL);
     *task = V_TASK_INVALID;
     return 0;
 }
@@ -117,6 +120,11 @@ int vos_mutex_init(vmutex_t *mutex)
 int vos_mutex_destroy(vmutex_t *mutex)
 {
     pthread_mutex_t *m = (pthread_mutex_t *)(*mutex);
+
+    if (*mutex == V_MUTEX_INVALID) {
+        return -1;
+    }
+
     if (pthread_mutex_destroy(m) != 0) {
         return -1;
     }
@@ -171,6 +179,11 @@ int vos_sem_init(vsem_t *sem, int limit, int value)
 int vos_sem_destroy(vsem_t *sem)
 {
     sem_t *s = (sem_t *)(*sem);
+
+    if (*sem == V_SEM_INVALID) {
+        return -1;
+    }
+
     if (sem_destroy(s) != 0) {
         return -1;
     }
@@ -281,6 +294,11 @@ int vos_mq_create(vmq_t *mq, const char *name, size_t msg_size, size_t max_msgs,
 int vos_mq_delete(vmq_t *mq)
 {
     vmqueue_t *q = (vmqueue_t *)(*mq);
+
+    if (*mq == V_MQ_INVALID) {
+        return -1;
+    }
+
     if (q == NULL || q->name == NULL) {
         return -1;
     }

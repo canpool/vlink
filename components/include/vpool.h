@@ -67,6 +67,16 @@ extern "C" {
 #define max(x, y)               ((x) > (y) ? (x) : (y))
 #endif
 
+#ifndef bound
+#define bound(l, v, h)          max(l, min(v, h))
+#endif
+
+
+#ifndef safe_free
+#define safe_free_raw(f, p)     do { if ((p) != NULL) { (f)((p)); (p) = NULL; } } while (0)
+#define safe_free(p)            safe_free_raw(vos_free, p)
+#endif
+
 /*
  * ARRAY_SIZE - get the number of elements for an array
  * @a: the array name

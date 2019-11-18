@@ -18,7 +18,9 @@
 #include "sal.h"
 #include "vos.h"
 
+#include <time.h>
 #include <string.h>
+#include <stdlib.h>
 
 struct net_cb {
     const struct net_ops   *ops;
@@ -417,6 +419,75 @@ void sal_freeaddrinfo(struct addrinfo *ai)
         s_domain_cb.domain->ops->freeaddrinfo != NULL) {
         return s_domain_cb.domain->ops->freeaddrinfo(ai);
     }
+}
+
+ssize_t sal_timedsend(int sockfd, const void *msg, size_t len, int flags, uint32_t timeout)
+{
+    struct timeval timedelay;
+
+    timedelay.tv_sec = timeout / 1000;
+    timedelay.tv_usec = (timeout % 1000) * 1000;
+
+    if (sal_setsockopt(sockfd, SOL_SOCKET, SO_SNDTIMEO, &timedelay, sizeof(timedelay)) != 0) {
+        return -1;
+    }
+
+    return sal_send(sockfd, msg, len, flags);
+}
+
+ssize_t sal_timedrecv(int sockfd, void *msg, size_t len, int flags, uint32_t timeout)
+{
+    struct timeval timedelay;
+
+    timedelay.tv_sec = timeout / 1000;
+    timedelay.tv_usec = (timeout % 1000) * 1000;
+
+    if (sal_setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, &timedelay, sizeof(timedelay)) != 0) {
+        return -1;
+    }
+
+    return sal_recv(sockfd, msg, len, flags);
+}
+
+/**
+ * domain   : AF_INET, AF_INET6, AF_LOCAL(AF_UNIX), AF_ROUTE
+ * type     : SOCK_STREAM, SOCK_DGRAM, SOCK_RAW, SOCK_PACKET, SOCK_SEQPACKET
+ * protocol : IPPROTO_TCP, IPPROTO_UDP, IPPROTO_SCTP, IPPROTO_TIPC, 0
+ */
+int sal_sockconnect(int domain, int type, int protocol, const char *host, const char *port)
+{
+    int fd = -1;
+    struct sockaddr_in addr;
+
+    /**
+     * we try use the gethostbyname to get the ip address, the host maybe a domain name
+     * eg. sal_gethostbyname("www.baidu.com")
+     *          official hostname www.a.shifen.com
+	 *                  alials: www.baidu.com
+	 *                  address: 180.101.49.12
+	 *                  address: 180.101.49.11
+     *     sal_gethostbyname("180.101.49.12")
+     *          official hostname 180.101.49.12
+     *                  address: 180.101.49.12
+     */
+    struct hostent *entry = sal_gethostbyname(host);
+    if (!(entry && entry->h_addr_list[0] && (entry->h_addrtype == domain))) {
+        return -1;
+    }
+    memset(&addr, 0, sizeof(addr));
+    addr.sin_family = domain;
+    memcpy(&addr.sin_addr.s_addr, entry->h_addr_list[0], sizeof(addr.sin_addr.s_addr));
+    addr.sin_port = htons(atoi(port));
+
+    if ((fd = sal_socket(domain, type, protocol)) < 0) {
+        return -1;
+    }
+
+    if (sal_connect(fd, (struct sockaddr *)&addr, sizeof(addr)) != 0) {
+        sal_closesocket(fd);
+        return -1;
+    }
+    return fd;
 }
 
 #endif // CONFIG_NET

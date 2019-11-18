@@ -51,8 +51,14 @@ const char *vlog_get_name(vlog_e level);
             __FILE__, __LINE__, ##__VA_ARGS__); \
         } \
     } while (0)
+
+#define vlog_print(format, ...) \
+    vprintf("[%llu][%s:%d] " format "\r\n", (unsigned long long)vos_sys_time(), \
+        __FUNCTION__, __LINE__, ##__VA_ARGS__)
+
 #else
 #define vlog(level, format, ...)
+#define vlog_print(format, ...)
 #endif
 
 #define vlog_debug(format, ...)   vlog(VLOG_DEBUG,    format, ##__VA_ARGS__)
