@@ -13,15 +13,20 @@
 # * See the Mulan PSL v1 for more details.
 # */
 
-ifeq ($(CONFIG_CLOUD_PROTO_TYPE), coap)
-	OC_COAP_DIR = $(OC_DIR)/coap
-	include $(OC_COAP_DIR)/oc_coap.mk
-else ifeq ($(CONFIG_CLOUD_PROTO_TYPE), mqtt)
-	OC_MQTT_DIR = $(OC_DIR)/mqtt
-	include $(OC_MQTT_DIR)/oc_mqtt.mk
-else ifeq ($(CONFIG_CLOUD_PROTO_TYPE), lwm2m)
-	OC_LWM2M_DIR = $(OC_DIR)/lwm2m
-	include $(OC_LWM2M_DIR)/oc_lwm2m.mk
-else
-	$(error "please config cloud protocol type")
-endif
+WAKAAMA_BASE_DIR 	 = $(WAKAAMA_DIR)/wakaama-master/core
+
+WAKAAMA_SRC = \
+		${wildcard $(WAKAAMA_BASE_DIR)/*.c} \
+		${wildcard $(WAKAAMA_BASE_DIR)/er-coap-13/*.c}
+
+WAKAAMA_INC = \
+		-I $(WAKAAMA_BASE_DIR)
+
+# adapter
+WAKAAMA_ADAPTER_DIR = $(WAKAAMA_DIR)/adapter
+include $(WAKAAMA_ADAPTER_DIR)/adapter.mk
+
+C_SOURCES  += $(WAKAAMA_SRC)
+C_INCLUDES += $(WAKAAMA_INC)
+
+C_DEFS += -D LWM2M_LITTLE_ENDIAN -D LWM2M_CLIENT_MODE

@@ -59,6 +59,16 @@ ifeq ($(CONFIG_DEMO), y)
     else ifeq ($(CONFIG_DEMO_TYPE), oc_tls_mqtt_demo)
         C_DEFS += -D CONFIG_HMAC=1
     	STANDARD_DEMOS_SOURCE  := $(DEMOS_DIR)/oc_tls_mqtt_demo.c
+    else ifeq ($(CONFIG_DEMO_TYPE), oc_dtls_lwm2m_bs_demo)
+    	STANDARD_DEMOS_SOURCE  := $(DEMOS_DIR)/oc_dtls_lwm2m_bs_demo.c
+    	C_DEFS += -D LWM2M_BOOTSTRAP=1
+   	else ifeq ($(CONFIG_DEMO_TYPE), oc_dtls_lwm2m_demo)
+    	STANDARD_DEMOS_SOURCE  := $(DEMOS_DIR)/oc_dtls_lwm2m_demo.c
+   	else ifeq ($(CONFIG_DEMO_TYPE), oc_lwm2m_bs_demo)
+    	STANDARD_DEMOS_SOURCE  := $(DEMOS_DIR)/oc_lwm2m_bs_demo.c
+    	C_DEFS += -D LWM2M_BOOTSTRAP=1
+    else ifeq ($(CONFIG_DEMO_TYPE), oc_lwm2m_demo)
+    	STANDARD_DEMOS_SOURCE  := $(DEMOS_DIR)/oc_lwm2m_demo.c
     else
         $(error "please config demo type")
     endif
@@ -68,5 +78,10 @@ ifeq ($(CONFIG_DEMO), y)
 
 endif
 
+ifeq ($(CONFIG_LWM2M), y)
+    ifeq ($(CONFIG_LWM2M_TYPE), wakaama)
+    C_DEFS += -D LWM2M_WITH_LOGS -D LWM2M_VERSION_1_0
+    endif
+endif
 
 

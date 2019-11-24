@@ -22,3 +22,8 @@ ifeq ($(CONFIG_MQTT), y)
 	MQTT_DIR = $(CONNECTIVITY_DIR)/mqtt
 	include $(MQTT_DIR)/mqtt.mk
 endif
+
+ifeq ($(CONFIG_LWM2M), y)
+	LWM2M_DIR = $(CONNECTIVITY_DIR)/lwm2m
+	include $(LWM2M_DIR)/lwm2m.mk
+endif

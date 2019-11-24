@@ -13,19 +13,28 @@
  * See the Mulan PSL v1 for more details.
  */
 
-#ifndef __VMISC_H__
-#define __VMISC_H__
+#ifndef __LWM2M_URI_H__
+#define __LWM2M_URI_H__
+
+#include "liblwm2m.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif /* __cplusplus */
 
-int v_random(void *output, int len);
+#define URI_FORMAT "uri(objId:%d, instId:%d, resId:%d)"
+#define URI_LOG_PARAM(uri) (uri)->objectId, (uri)->instanceId, (uri)->resourceId
 
-char *v_strdup(const char *s);
+// uri instantiation, like /1/2
+void lwm2m_uri_inst(lwm2m_uri_t *uri, uint16_t obj_id, uint16_t inst_id);
+
+// uri resource, like /1/0/1
+void lwm2m_uri_res(lwm2m_uri_t *uri, uint16_t obj_id, uint16_t inst_id, uint16_t res_id);
+
+int lwm2m_uri_equal(const lwm2m_uri_t *uri0, const lwm2m_uri_t *uri1);
 
 #ifdef __cplusplus
 }
 #endif /* __cplusplus */
 
-#endif /* __VMISC_H__ */
+#endif /* __LWM2M_URI_H__ */

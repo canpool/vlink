@@ -13,19 +13,17 @@
  * See the Mulan PSL v1 for more details.
  */
 
-#ifndef __VMISC_H__
-#define __VMISC_H__
+#ifndef __AGENT_LWM2M_H__
+#define __AGENT_LWM2M_H__
 
 #ifdef __cplusplus
 extern "C" {
 #endif /* __cplusplus */
 
-int v_random(void *output, int len);
-
-char *v_strdup(const char *s);
+int oc_lwm2m_setup(void);
 
 #ifdef __cplusplus
 }
 #endif /* __cplusplus */
 
-#endif /* __VMISC_H__ */
+#endif /* __AGENT_LWM2M_H__ */

@@ -13,19 +13,24 @@
  * See the Mulan PSL v1 for more details.
  */
 
-#ifndef __VMISC_H__
-#define __VMISC_H__
+#include <stddef.h>
+#include <string.h>
 
-#ifdef __cplusplus
-extern "C" {
-#endif /* __cplusplus */
+#include "vos.h"
 
-int v_random(void *output, int len);
+char *v_strdup(const char *s)
+{
+    if (s == NULL) {
+        return NULL;
+    }
 
-char *v_strdup(const char *s);
+    size_t len = strlen(s) + 1;
+    char *dup = (char *)vos_malloc(len);
 
-#ifdef __cplusplus
+    if (dup == NULL) {
+        return NULL;
+    }
+    memcpy(dup, s, len);
+
+    return dup;
 }
-#endif /* __cplusplus */
-
-#endif /* __VMISC_H__ */

@@ -74,6 +74,17 @@ int vlink_main(void *args)
     oc_mqtt_setup();
 #endif
 
+/* lwm2m */
+#if CONFIG_LWM2M
+    extern int lwm2m_setup(void);
+    lwm2m_setup();
+#endif
+
+#if CONFIG_OC_LWM2M
+    extern int oc_lwm2m_setup(void);
+    oc_lwm2m_setup();
+#endif
+
 #if CONFIG_DEMOS
     extern int standard_app_demo_main();
     standard_app_demo_main();

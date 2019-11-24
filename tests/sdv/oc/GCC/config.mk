@@ -19,15 +19,21 @@ CONFIG_OS_TYPE              := linux
 CONFIG_NET                  := y
 CONFIG_NET_TYPE             := linux
 
+# coap
 CONFIG_COAP                 := n
 CONFIG_COAP_TYPE            := libcoap
 
+# mqtt
 CONFIG_MQTT                 := y
 CONFIG_MQTT_TYPE            := paho
 
 CONFIG_JSON                 := y
 
-# coap, mqtt
+# lwm2m
+CONFIG_LWM2M                := n
+CONFIG_LWM2M_TYPE           := wakaama
+
+# coap, mqtt, lwm2m
 CONFIG_CLOUD                := y
 CONFIG_CLOUD_TYPE           := oc
 CONFIG_CLOUD_PROTO_TYPE     := mqtt
@@ -39,6 +45,7 @@ CONFIG_DTLS                 := y
 CONFIG_DTLS_TYPE            := cert
 
 # oc_coap_demo, oc_dtls_coap_demo, oc_tls_mqtt_bs_demo, oc_tls_mqtt_demo
+# oc_lwm2m_demo, oc_lwm2m_bs_demo, oc_dtls_lwm2m_demo, oc_dtls_lwm2m_bs_demo
 CONFIG_DEMO                 := y
 CONFIG_DEMO_TYPE            := oc_tls_mqtt_demo
 

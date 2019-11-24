@@ -73,8 +73,8 @@ extern "C" {
 
 
 #ifndef safe_free
-#define safe_free_raw(f, p)     do { if ((p) != NULL) { (f)((p)); (p) = NULL; } } while (0)
-#define safe_free(p)            safe_free_raw(vos_free, p)
+#define safe_free_raw(p, f)     do { if ((p) != NULL) { (f)((p)); (p) = NULL; } } while (0)
+#define safe_free(p)            safe_free_raw(p, vos_free)
 #endif
 
 /*
