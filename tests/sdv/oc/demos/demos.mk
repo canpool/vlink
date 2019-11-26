@@ -54,10 +54,9 @@ ifeq ($(CONFIG_DEMO), y)
     else ifeq ($(CONFIG_DEMO_TYPE), oc_dtls_coap_demo)
     	STANDARD_DEMOS_SOURCE  := $(DEMOS_DIR)/oc_dtls_coap_demo.c
     else ifeq ($(CONFIG_DEMO_TYPE), oc_tls_mqtt_bs_demo)
-        C_DEFS += -D CONFIG_HMAC=1 -D LWM2M_BOOTSTRAP=1
+        C_DEFS += -D LWM2M_BOOTSTRAP=1
     	STANDARD_DEMOS_SOURCE  := $(DEMOS_DIR)/oc_tls_mqtt_bs_demo.c
     else ifeq ($(CONFIG_DEMO_TYPE), oc_tls_mqtt_demo)
-        C_DEFS += -D CONFIG_HMAC=1
     	STANDARD_DEMOS_SOURCE  := $(DEMOS_DIR)/oc_tls_mqtt_demo.c
     else ifeq ($(CONFIG_DEMO_TYPE), oc_dtls_lwm2m_bs_demo)
     	STANDARD_DEMOS_SOURCE  := $(DEMOS_DIR)/oc_dtls_lwm2m_bs_demo.c
@@ -83,5 +82,3 @@ ifeq ($(CONFIG_LWM2M), y)
     C_DEFS += -D LWM2M_WITH_LOGS -D LWM2M_VERSION_1_0
     endif
 endif
-
-

@@ -13,7 +13,7 @@
  * See the Mulan PSL v1 for more details.
  */
 
-#include "ecdsa256.h"
+#include "vsl_ecdsa256.h"
 
 #include <sys/time.h>
 
@@ -28,6 +28,11 @@ protected:
 	void TearDown() {
 	};
 };
+
+extern "C" {
+extern int vsl_ecdsa_init(void);
+extern int vsl_ecdsa_destroy(void);
+}
 
 static void print_array(unsigned char *array, int size)
 {
@@ -44,8 +49,8 @@ static void print_array(unsigned char *array, int size)
 
 TEST_F(TestEcdsa256, init)
 {
-	EXPECT_EQ(0, ecdsa_init());
-	EXPECT_EQ(0, ecdsa_destroy());
+	EXPECT_EQ(0, vsl_ecdsa_init());
+	EXPECT_EQ(0, vsl_ecdsa_destroy());
 }
 
 TEST_F(TestEcdsa256, key)
@@ -56,15 +61,15 @@ TEST_F(TestEcdsa256, key)
 	unsigned char signature[2][CONFIG_ECDSA_SIG_LEN] = {0};
 	unsigned char message[20] = "hello ecdsa";
 
-	ecdsa_init();
-	ecdsa_gen_keypair(public_key[0], private_key[0]);
-	EXPECT_EQ(0, ecdsa_sign(message, sizeof(message), signature[0]));
+	// vsl_ecdsa_init();
+	vsl_ecdsa_gen_keypair(public_key[0], private_key[0]);
+	EXPECT_EQ(0, vsl_ecdsa_sign(private_key[0], message, sizeof(message), signature[0]));
 	printf("signature: \n");
 	print_array(signature[0], CONFIG_ECDSA_SIG_LEN);
 	printf("----------------------------------------\n");
 
-	ecdsa_gen_keypair(public_key[1], private_key[1]);
-	EXPECT_EQ(0, ecdsa_verify(public_key[0], message, sizeof(message), signature[0]));
+	vsl_ecdsa_gen_keypair(public_key[1], private_key[1]);
+	EXPECT_EQ(0, vsl_ecdsa_verify(public_key[0], message, sizeof(message), signature[0]));
 
 	for (i = 0; i < 2; i++) {
 		printf("keypair %d:\n", i);
@@ -75,7 +80,7 @@ TEST_F(TestEcdsa256, key)
 		printf("----------------------------------------\n");
 	}
 
-	ecdsa_destroy();
+	// vsl_ecdsa_destroy();
 }
 
 static float elapsed_time(struct timeval *end, struct timeval *start)
@@ -96,29 +101,30 @@ TEST_F(TestEcdsa256, time)
 	struct timeval tpstart, tpend;
 
 	gettimeofday(&tpstart, NULL);
-	ecdsa_init();
+	vsl_ecdsa_init();
 	gettimeofday(&tpend, NULL);
-	printf("ecdsa_init()\n\telapsed time %f us\n", elapsed_time(&tpend, &tpstart));
+	printf("vsl_ecdsa_init()\n\telapsed time %f us\n", elapsed_time(&tpend, &tpstart));
 
 	gettimeofday(&tpstart, NULL);
-	ecdsa_gen_keypair(public_key[0], private_key[0]);
+	vsl_ecdsa_destroy();
 	gettimeofday(&tpend, NULL);
-	printf("ecdsa_gen_keypair()\n\telapsed time %f us\n", elapsed_time(&tpend, &tpstart));
+	printf("vsl_ecdsa_destroy()\n\telapsed time %f us\n", elapsed_time(&tpend, &tpstart));
 
 	gettimeofday(&tpstart, NULL);
-	ecdsa_sign(message, sizeof(message), signature[0]);
+	vsl_ecdsa_gen_keypair(public_key[0], private_key[0]);
 	gettimeofday(&tpend, NULL);
-	printf("ecdsa_sign()\n\telapsed time %f us\n", elapsed_time(&tpend, &tpstart));
-
-	ecdsa_gen_keypair(public_key[1], private_key[1]);
+	printf("vsl_ecdsa_gen_keypair()\n\telapsed time %f us\n", elapsed_time(&tpend, &tpstart));
 
 	gettimeofday(&tpstart, NULL);
-	ecdsa_verify(public_key[0], message, sizeof(message), signature[0]);
+	vsl_ecdsa_sign(private_key[0], message, sizeof(message), signature[0]);
 	gettimeofday(&tpend, NULL);
-	printf("ecdsa_verify()\n\telapsed time %f us\n", elapsed_time(&tpend, &tpstart));
+	printf("vsl_ecdsa_sign()\n\telapsed time %f us\n", elapsed_time(&tpend, &tpstart));
+
+	vsl_ecdsa_gen_keypair(public_key[1], private_key[1]);
 
 	gettimeofday(&tpstart, NULL);
-	ecdsa_destroy();
+	vsl_ecdsa_verify(public_key[0], message, sizeof(message), signature[0]);
 	gettimeofday(&tpend, NULL);
-	printf("ecdsa_destroy()\n\telapsed time %f us\n", elapsed_time(&tpend, &tpstart));
+	printf("vsl_ecdsa_verify()\n\telapsed time %f us\n", elapsed_time(&tpend, &tpstart));
+
 }

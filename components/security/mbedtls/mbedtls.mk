@@ -16,29 +16,10 @@
 MBEDTLS_BASE_DIR = $(MBEDTLS_DIR)/mbedtls-2.16.2
 MBEDTLS_PORT_DIR = $(MBEDTLS_DIR)/port
 
-MBEDTLS_SRC = \
-        ${wildcard $(MBEDTLS_BASE_DIR)/library/*.c} \
-        ${wildcard $(MBEDTLS_PORT_DIR)/vsl/*.c}
-
-MBEDTLS_INC = \
-        -I $(MBEDTLS_BASE_DIR)/include
-
 ifeq ($(CONFIG_DTLS), y)
     MBEDTLS_DTLS_DIR = $(MBEDTLS_PORT_DIR)/dtls
     include $(MBEDTLS_DTLS_DIR)/dtls.mk
 endif
 
-
-ifeq ($(CONFIG_CURVE25519), y)
-    MBEDTLS_CURVE_DIR = $(MBEDTLS_PORT_DIR)/curve25519
-    include $(MBEDTLS_CURVE_DIR)/curve25519.mk
-endif
-
-ifeq ($(CONFIG_ECDSA256), y)
-    MBEDTLS_ECDSA_DIR = $(MBEDTLS_PORT_DIR)/ecdsa256
-    include $(MBEDTLS_ECDSA_DIR)/ecdsa256.mk
-endif
-
-C_SOURCES += $(MBEDTLS_SRC)
-C_INCLUDES += $(MBEDTLS_INC)
-C_DEFS += $(MBEDTLS_DEF)
+MBEDTLS_VSL_DIR = $(MBEDTLS_PORT_DIR)/vsl
+include $(MBEDTLS_VSL_DIR)/vsl.mk

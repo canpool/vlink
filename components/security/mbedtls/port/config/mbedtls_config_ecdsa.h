@@ -13,23 +13,58 @@
  * See the Mulan PSL v1 for more details.
  */
 
-#ifndef __MBEDTLS_CONFIG_H__
-#define __MBEDTLS_CONFIG_H__
+#ifndef __MBEDTLS_CONFIG_ECDSA_H__
+#define __MBEDTLS_CONFIG_ECDSA_H__
 
 /* mbed TLS modules */
+#ifndef MBEDTLS_AES_C
 #define MBEDTLS_AES_C
-#define MBEDTLS_ENTROPY_C
+#endif
 
+#ifndef MBEDTLS_ENTROPY_C
+#define MBEDTLS_ENTROPY_C
+#endif
+
+#ifndef MBEDTLS_ENTROPY_C
+#define MBEDTLS_ENTROPY_C
+#endif
+
+#ifndef MBEDTLS_SHA256_C
 #define MBEDTLS_SHA256_C
+#endif
+
+#ifndef MBEDTLS_ECDSA_C
 #define MBEDTLS_ECDSA_C
+#endif
+
+#ifndef MBEDTLS_ECP_C
 #define MBEDTLS_ECP_C
+#endif
+
+#ifndef MBEDTLS_ASN1_PARSE_C
 #define MBEDTLS_ASN1_PARSE_C
+#endif
+
+#ifndef MBEDTLS_ASN1_WRITE_C
 #define MBEDTLS_ASN1_WRITE_C
+#endif
+
+#ifndef MBEDTLS_BIGNUM_C
 #define MBEDTLS_BIGNUM_C
+#endif
+
+#ifndef MBEDTLS_ECDH_LEGACY_CONTEXT
 #define MBEDTLS_ECDH_LEGACY_CONTEXT
+#endif
+
+#ifndef MBEDTLS_ECP_DP_SECP256K1_ENABLED
 #define MBEDTLS_ECP_DP_SECP256K1_ENABLED
+#endif
+
+#ifndef MBEDTLS_CTR_DRBG_C
 #define MBEDTLS_CTR_DRBG_C
+#endif
 
 #include "mbedtls/check_config.h"
 
-#endif // __MBEDTLS_CONFIG_H__
+#endif // __MBEDTLS_CONFIG_ECDSA_H__

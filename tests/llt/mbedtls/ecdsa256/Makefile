@@ -18,9 +18,8 @@ FILE_PATTERN = "*ecdsa256*"
 CONFIG_OS				:= y
 CONFIG_OS_TYPE			:= linux
 
-CONFIG_SECURITY			:= y
-CONFIG_SECURITY_TYPE	:= mbedtls
 CONFIG_ECDSA256			:= y
+CONFIG_ECDSA256_TYPE    := mbedtls
 
 include $(ROOT_DIR)/vlink.mk
 
@@ -37,7 +36,7 @@ CPP_SOURCES += $(wildcard $(CUR_DIR)/src/*.cpp)
 # CFLAGS
 #######################################
 # C defines
-C_DEFS	+=
+C_DEFS	+= -DCONFIG_VLOG
 
 # C includes
 C_INCLUDES += \

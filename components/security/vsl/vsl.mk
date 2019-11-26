@@ -13,13 +13,8 @@
 # * See the Mulan PSL v1 for more details.
 # */
 
-MBEDTLS_ECDSA_SRC = \
-        ${wildcard $(MBEDTLS_ECDSA_DIR)/*.c}
+VSL_SRC = ${wildcard $(VSL_DIR)/*.c}
+C_SOURCES += $(VSL_SRC)
 
-MBEDTLS_ECDSA_INC = \
-        -I $(MBEDTLS_ECDSA_DIR)
-
-C_SOURCES += $(MBEDTLS_ECDSA_SRC)
-C_INCLUDES += $(MBEDTLS_ECDSA_INC)
-
-C_DEFS += -D MBEDTLS_CONFIG_FILE=\"mbedtls_config_ecdsa.h\"
+VSL_INC = -I $(VSL_DIR)
+C_INCLUDES += $(VSL_INC)

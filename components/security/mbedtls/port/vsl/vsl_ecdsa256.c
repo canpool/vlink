@@ -30,7 +30,7 @@
 #define MBEDTLS_EXIT_FAILURE EXIT_FAILURE
 #endif /* MBEDTLS_PLATFORM_C */
 
-#include "ecdsa256.h"
+#include "vsl_ecdsa256.h"
 #include "vos.h"
 
 #include "mbedtls/ctr_drbg.h"
@@ -40,44 +40,17 @@
 
 #include <string.h>
 
-typedef struct __ecdsa256_context {
+#define VSL_ECDSA_ECP_GRP_ID    MBEDTLS_ECP_DP_SECP256K1
+
+typedef struct __vsl_ecdsa256_context {
     mbedtls_ecdsa_context    ecdsa;
     mbedtls_entropy_context  entropy;
     mbedtls_ctr_drbg_context ctr_drbg;
-} ecdsa256_context;
+} vsl_ecdsa256_context;
 
-static ecdsa256_context *s_ctx = NULL;
+static vsl_ecdsa256_context *s_ctx = NULL;
 
-int ecdsa_init(void)
-{
-    int ret;
-    const char pers[] = "ecdsa";
-
-    if (s_ctx != NULL) {
-        return -1;
-    }
-    s_ctx = (ecdsa256_context *)vos_malloc(sizeof(ecdsa256_context));
-    if (s_ctx == NULL) {
-        return -1;
-    }
-
-    mbedtls_ecdsa_init(&s_ctx->ecdsa);
-    mbedtls_ctr_drbg_init(&s_ctx->ctr_drbg);
-    mbedtls_entropy_init(&s_ctx->entropy);
-
-    if ((ret = mbedtls_ctr_drbg_seed(&s_ctx->ctr_drbg, mbedtls_entropy_func, &s_ctx->entropy,
-                                     (const unsigned char *)pers, strlen(pers))) != 0) {
-        mbedtls_printf(" failed\n  ! mbedtls_ctr_drbg_seed returned %d\n", ret);
-        goto exit;
-    }
-    return 0;
-
-exit:
-    ecdsa_destroy();
-    return -1;
-}
-
-int ecdsa_destroy(void)
+int vsl_ecdsa_destroy(void)
 {
     if (s_ctx == NULL) {
         return 0;
@@ -92,39 +65,79 @@ int ecdsa_destroy(void)
     return 0;
 }
 
-int ecdsa_gen_keypair(unsigned char public_key[CONFIG_ECDSA_PUBKEY_LEN],
-                      unsigned char private_key[CONFIG_ECDSA_PRIKEY_LEN])
+int vsl_ecdsa_init(void)
 {
     int ret;
-    size_t len;
+    const char pers[] = "ecdsa";
 
-    if (s_ctx == NULL || public_key == NULL || private_key == NULL) {
+    if (s_ctx != NULL) {
+        return -1;
+    }
+    s_ctx = (vsl_ecdsa256_context *)vos_malloc(sizeof(vsl_ecdsa256_context));
+    if (s_ctx == NULL) {
         return -1;
     }
 
-    if ((ret = mbedtls_ecdsa_genkey(&s_ctx->ecdsa, MBEDTLS_ECP_DP_SECP256K1, mbedtls_ctr_drbg_random,
-                                    &s_ctx->ctr_drbg)) != 0) {
-        mbedtls_printf(" failed\n  ! mbedtls_ecdsa_genkey returned %d\n", ret);
+    mbedtls_ecdsa_init(&s_ctx->ecdsa);
+    mbedtls_ctr_drbg_init(&s_ctx->ctr_drbg);
+    mbedtls_entropy_init(&s_ctx->entropy);
+
+    if ((ret = mbedtls_ctr_drbg_seed(&s_ctx->ctr_drbg, mbedtls_entropy_func, &s_ctx->entropy,
+                                     (const unsigned char *)pers, strlen(pers))) != 0) {
+        vlog_error("mbedtls_ctr_drbg_seed returned %d", ret);
+        goto exit;
+    }
+    return 0;
+
+exit:
+    vsl_ecdsa_destroy();
+    return -1;
+}
+
+int vsl_ecdsa_gen_keypair(unsigned char public_key[CONFIG_ECDSA_PUBKEY_LEN],
+                      unsigned char private_key[CONFIG_ECDSA_PRIKEY_LEN])
+{
+    int ret = -1;
+    size_t len;
+
+    if (public_key == NULL || private_key == NULL) {
+        vlog_error("illegal input param");
         return -1;
+    }
+
+    if (vsl_ecdsa_init() != 0) {
+        vlog_error("vsl_ecdsa_init failed");
+        goto exit;
+    }
+
+    if ((ret = mbedtls_ecdsa_genkey(&s_ctx->ecdsa, VSL_ECDSA_ECP_GRP_ID, mbedtls_ctr_drbg_random,
+                                    &s_ctx->ctr_drbg)) != 0) {
+        vlog_error("mbedtls_ecdsa_genkey returned %d", ret);
+        goto exit;
     }
 
     ret = mbedtls_mpi_write_binary(&s_ctx->ecdsa.Q.X, public_key, CONFIG_ECDSA_PUBKEY_LEN / 2);
     if (ret != 0) {
-        mbedtls_printf(" failed\n  ! mbedtls_mpi_write_binary returned %d\n", ret);
-        return -1;
+        vlog_error("mbedtls_mpi_write_binary returned %d", ret);
+        goto exit;
     }
     ret = mbedtls_mpi_write_binary(&s_ctx->ecdsa.Q.Y, public_key + CONFIG_ECDSA_PUBKEY_LEN / 2,
                                    CONFIG_ECDSA_PUBKEY_LEN / 2);
     if (ret != 0) {
-        mbedtls_printf(" failed\n  ! mbedtls_mpi_write_binary returned %d\n", ret);
-        return -1;
+        vlog_error("mbedtls_mpi_write_binary returned %d", ret);
+        goto exit;
     }
     ret = mbedtls_mpi_write_binary(&s_ctx->ecdsa.d, private_key, CONFIG_ECDSA_PRIKEY_LEN);
     if (ret != 0) {
-        mbedtls_printf(" failed\n  ! mbedtls_mpi_write_binary returned %d\n", ret);
-        return -1;
+        vlog_error("mbedtls_mpi_write_binary returned %d", ret);
+        goto exit;
     }
-    return 0;
+
+    ret = 0;
+
+exit:
+    vsl_ecdsa_destroy();
+    return (ret ? -1 : 0);
 }
 
 #include "mbedtls/platform_util.h"
@@ -201,63 +214,91 @@ cleanup:
     return( ret );
 }
 
-int ecdsa_sign(unsigned char *data, unsigned int data_len, unsigned char out_sig[CONFIG_ECDSA_SIG_LEN])
+int vsl_ecdsa_sign(unsigned char private_key[CONFIG_ECDSA_PRIKEY_LEN], unsigned char *data,
+               unsigned int data_len, unsigned char out_sig[CONFIG_ECDSA_SIG_LEN])
 {
-    int ret;
+    int ret = -1;
     unsigned char hash[32] = {0};
 
-    if (s_ctx == NULL || data == NULL || data_len == 0 || out_sig == NULL) {
+    if (data == NULL || data_len == 0 || out_sig == NULL) {
+        vlog_error("illegal input param");
         return -1;
     }
+    if (vsl_ecdsa_init() != 0) {
+        vlog_error("vsl_ecdsa_init failed");
+        goto exit;
+    }
+    mbedtls_ecp_group_load(&s_ctx->ecdsa.grp, VSL_ECDSA_ECP_GRP_ID);
+
     if ((ret = mbedtls_sha256_ret(data, data_len, hash, 0)) != 0) {
-        mbedtls_printf(" failed\n  ! mbedtls_sha256_ret returned %d\n", ret);
-        return -1;
+        vlog_error("mbedtls_sha256_ret returned %d", ret);
+        goto exit;
+    }
+    ret = mbedtls_mpi_read_binary(&s_ctx->ecdsa.d, private_key, CONFIG_ECDSA_PRIKEY_LEN);
+    if (ret != 0) {
+        vlog_error("mbedtls_mpi_read_binary returned %d", ret);
+        goto exit;
     }
     // take care the boundary of out_sig
-    if ((ret = __mbedtls_ecdsa_write_signature(&s_ctx->ecdsa, MBEDTLS_MD_SHA256, hash, sizeof(hash), out_sig, CONFIG_ECDSA_SIG_LEN,
-                                             mbedtls_ctr_drbg_random, &s_ctx->ctr_drbg)) != 0) {
-        mbedtls_printf(" failed\n  ! mbedtls_ecdsa_write_signature returned %d\n", ret);
-        return -1;
+    if ((ret = __mbedtls_ecdsa_write_signature(&s_ctx->ecdsa, MBEDTLS_MD_SHA256, hash, sizeof(hash), out_sig,
+            CONFIG_ECDSA_SIG_LEN, mbedtls_ctr_drbg_random, &s_ctx->ctr_drbg)) != 0) {
+        vlog_error("mbedtls_ecdsa_write_signature returned %d", ret);
+        goto exit;
     }
-    return 0;
+    ret = 0;
+
+exit:
+    vsl_ecdsa_destroy();
+    return (ret ? -1 : 0);
 }
 
-int ecdsa_verify(unsigned char peer_public_key[CONFIG_ECDSA_PUBKEY_LEN], unsigned char *data,
+int vsl_ecdsa_verify(unsigned char peer_public_key[CONFIG_ECDSA_PUBKEY_LEN], unsigned char *data,
                  unsigned int data_len, unsigned char in_sig[CONFIG_ECDSA_SIG_LEN])
 {
-    int ret;
+    int ret = -1;
     unsigned char hash[32] = {0};
     size_t sig_len;
 
-    if (s_ctx == NULL || peer_public_key == NULL || data == NULL || data_len == 0 || in_sig == NULL) {
+    if (peer_public_key == NULL || data == NULL || data_len == 0 || in_sig == NULL) {
+        vlog_error("illegal input param");
         return -1;
     }
 
+    if (vsl_ecdsa_init() != 0) {
+        vlog_error("vsl_ecdsa_init failed");
+        goto exit;
+    }
+    mbedtls_ecp_group_load(&s_ctx->ecdsa.grp, VSL_ECDSA_ECP_GRP_ID);
+
     ret = mbedtls_mpi_lset(&s_ctx->ecdsa.Q.Z, 1);
     if (ret != 0) {
-        mbedtls_printf(" failed\n  ! mbedtls_mpi_lset returned %d\n", ret);
-        return -1;
+        vlog_error("mbedtls_mpi_lset returned %d", ret);
+        goto exit;
     }
     ret = mbedtls_mpi_read_binary(&s_ctx->ecdsa.Q.X, peer_public_key, CONFIG_ECDSA_PUBKEY_LEN / 2);
     if (ret != 0) {
-        mbedtls_printf(" failed\n  ! mbedtls_mpi_read_binary returned %d\n", ret);
-        return -1;
+        vlog_error("mbedtls_mpi_read_binary returned %d", ret);
+        goto exit;
     }
     ret = mbedtls_mpi_read_binary(&s_ctx->ecdsa.Q.Y, peer_public_key + CONFIG_ECDSA_PUBKEY_LEN / 2,
                                   CONFIG_ECDSA_PUBKEY_LEN / 2);
     if (ret != 0) {
-        mbedtls_printf(" failed\n  ! mbedtls_mpi_read_binary returned %d\n", ret);
-        return -1;
+        vlog_error("mbedtls_mpi_read_binary returned %d", ret);
+        goto exit;
     }
     if ((ret = mbedtls_sha256_ret(data, data_len, hash, 0)) != 0) {
-        mbedtls_printf(" failed\n  ! mbedtls_sha256_ret returned %d\n", ret);
-        return -1;
+        vlog_error("mbedtls_sha256_ret returned %d", ret);
+        goto exit;
     }
     // Verify signature
     if ((ret = __mbedtls_ecdsa_read_signature(&s_ctx->ecdsa, hash, sizeof(hash), in_sig, CONFIG_ECDSA_SIG_LEN)) != 0) {
-        mbedtls_printf(" failed\n  ! mbedtls_ecdsa_read_signature returned %d\n", ret);
-        return -1;
+        vlog_error("mbedtls_ecdsa_read_signature returned %d", ret);
+        goto exit;
     }
 
-    return 0;
+    ret = 0;
+
+exit:
+    vsl_ecdsa_destroy();
+    return (ret ? -1 : 0);
 }

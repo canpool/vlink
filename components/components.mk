@@ -28,10 +28,8 @@ ifeq ($(CONFIG_OS), y)
 	include $(OS_DIR)/os.mk
 endif
 
-ifeq ($(CONFIG_SECURITY), y)
-	SECURITY_DIR = $(COMPONENTS_DIR)/security
-	include $(SECURITY_DIR)/security.mk
-endif
+SECURITY_DIR = $(COMPONENTS_DIR)/security
+include $(SECURITY_DIR)/security.mk
 
 CONNECTIVITY_DIR = $(COMPONENTS_DIR)/connectivity
 include $(CONNECTIVITY_DIR)/connectivity.mk

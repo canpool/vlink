@@ -23,10 +23,8 @@ CONFIG_OS_TYPE			:= linux
 CONFIG_NET				:= y
 CONFIG_NET_TYPE			:= linux
 
-CONFIG_SECURITY			:= y
-CONFIG_SECURITY_TYPE	:= mbedtls
 CONFIG_DTLS				:= y
-CONFIG_DTLS_TYPE		:= psk
+CONFIG_DTLS_TYPE		:= mbedtls_psk
 
 include $(ROOT_DIR)/vlink.mk
 

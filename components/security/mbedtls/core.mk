@@ -13,13 +13,20 @@
 # * See the Mulan PSL v1 for more details.
 # */
 
-MBEDTLS_CURVE_SRC = \
-        ${wildcard $(MBEDTLS_CURVE_DIR)/*.c}
+ifneq ($(__CONFIG_MBEDTLS__), y)
+__CONFIG_MBEDTLS__ = y
 
-MBEDTLS_CURVE_INC = \
-        -I $(MBEDTLS_CURVE_DIR)
+MBEDTLS_SRC = \
+        ${wildcard $(MBEDTLS_BASE_DIR)/library/*.c}
 
-C_SOURCES += $(MBEDTLS_CURVE_SRC)
-C_INCLUDES += $(MBEDTLS_CURVE_INC)
+MBEDTLS_INC = \
+        -I $(MBEDTLS_BASE_DIR)/include \
+        -I $(MBEDTLS_PORT_DIR)/config
 
-C_DEFS += -D MBEDTLS_CONFIG_FILE=\"mbedtls_config_curve25519.h\"
+MBEDTLS_DEF += -D MBEDTLS_CONFIG_FILE=\"mbedtls_config.h\"
+
+C_SOURCES += $(MBEDTLS_SRC)
+C_INCLUDES += $(MBEDTLS_INC)
+C_DEFS += $(MBEDTLS_DEF)
+
+endif # __CONFIG_MBEDTLS__

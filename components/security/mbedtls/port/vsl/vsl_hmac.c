@@ -13,8 +13,6 @@
  * See the Mulan PSL v1 for more details.
  */
 
-#ifdef CONFIG_HMAC
-
 #include "vsl_hmac.h"
 
 #include "mbedtls/md.h"
@@ -63,5 +61,3 @@ exit:
 
     return ret;
 }
-
-#endif // CONFIG_HMAC

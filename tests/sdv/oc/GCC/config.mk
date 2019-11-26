@@ -29,6 +29,9 @@ CONFIG_MQTT_TYPE            := paho
 
 CONFIG_JSON                 := y
 
+CONFIG_HMAC                 := y
+CONFIG_HMAC_TYPE            := mbedtls
+
 # lwm2m
 CONFIG_LWM2M                := n
 CONFIG_LWM2M_TYPE           := wakaama
@@ -38,11 +41,9 @@ CONFIG_CLOUD                := y
 CONFIG_CLOUD_TYPE           := oc
 CONFIG_CLOUD_PROTO_TYPE     := mqtt
 
-# psk, cert
-CONFIG_SECURITY             := y
-CONFIG_SECURITY_TYPE        := mbedtls
+# mbedtls_psk, mbedtls_cert
 CONFIG_DTLS                 := y
-CONFIG_DTLS_TYPE            := cert
+CONFIG_DTLS_TYPE            := mbedtls_cert
 
 # oc_coap_demo, oc_dtls_coap_demo, oc_tls_mqtt_bs_demo, oc_tls_mqtt_demo
 # oc_lwm2m_demo, oc_lwm2m_bs_demo, oc_dtls_lwm2m_demo, oc_dtls_lwm2m_bs_demo
