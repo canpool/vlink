@@ -40,7 +40,6 @@
 
 #include <string.h>
 
-#define VSL_ECDSA_ECP_GRP_ID    MBEDTLS_ECP_DP_SECP256K1
 
 typedef struct __vsl_ecdsa256_context {
     mbedtls_ecdsa_context    ecdsa;
@@ -49,6 +48,7 @@ typedef struct __vsl_ecdsa256_context {
 } vsl_ecdsa256_context;
 
 static vsl_ecdsa256_context *s_ctx = NULL;
+static int s_curve_id = MBEDTLS_ECP_DP_SECP256K1;
 
 int vsl_ecdsa_destroy(void)
 {
@@ -110,7 +110,7 @@ int vsl_ecdsa_gen_keypair(unsigned char public_key[CONFIG_ECDSA_PUBKEY_LEN],
         goto exit;
     }
 
-    if ((ret = mbedtls_ecdsa_genkey(&s_ctx->ecdsa, VSL_ECDSA_ECP_GRP_ID, mbedtls_ctr_drbg_random,
+    if ((ret = mbedtls_ecdsa_genkey(&s_ctx->ecdsa, s_curve_id, mbedtls_ctr_drbg_random,
                                     &s_ctx->ctr_drbg)) != 0) {
         vlog_error("mbedtls_ecdsa_genkey returned %d", ret);
         goto exit;
@@ -228,7 +228,7 @@ int vsl_ecdsa_sign(unsigned char private_key[CONFIG_ECDSA_PRIKEY_LEN], unsigned 
         vlog_error("vsl_ecdsa_init failed");
         goto exit;
     }
-    mbedtls_ecp_group_load(&s_ctx->ecdsa.grp, VSL_ECDSA_ECP_GRP_ID);
+    mbedtls_ecp_group_load(&s_ctx->ecdsa.grp, s_curve_id);
 
     if ((ret = mbedtls_sha256_ret(data, data_len, hash, 0)) != 0) {
         vlog_error("mbedtls_sha256_ret returned %d", ret);
@@ -268,7 +268,7 @@ int vsl_ecdsa_verify(unsigned char peer_public_key[CONFIG_ECDSA_PUBKEY_LEN], uns
         vlog_error("vsl_ecdsa_init failed");
         goto exit;
     }
-    mbedtls_ecp_group_load(&s_ctx->ecdsa.grp, VSL_ECDSA_ECP_GRP_ID);
+    mbedtls_ecp_group_load(&s_ctx->ecdsa.grp, s_curve_id);
 
     ret = mbedtls_mpi_lset(&s_ctx->ecdsa.Q.Z, 1);
     if (ret != 0) {
@@ -301,4 +301,105 @@ int vsl_ecdsa_verify(unsigned char peer_public_key[CONFIG_ECDSA_PUBKEY_LEN], uns
 exit:
     vsl_ecdsa_destroy();
     return (ret ? -1 : 0);
+}
+
+static int __compute_shared_restartable( mbedtls_ecp_group *grp,
+                         unsigned char *z, int zlen,
+                         const mbedtls_ecp_point *Q, const mbedtls_mpi *d,
+                         int (*f_rng)(void *, unsigned char *, size_t),
+                         void *p_rng )
+{
+    int ret;
+    mbedtls_ecp_point P;
+
+    mbedtls_ecp_point_init( &P );
+
+    MBEDTLS_MPI_CHK( mbedtls_ecp_mul_restartable( grp, &P, d, Q,
+                                                  f_rng, p_rng, NULL ) );
+
+    if( mbedtls_ecp_is_zero( &P ) )
+    {
+        ret = MBEDTLS_ERR_ECP_BAD_INPUT_DATA;
+        goto cleanup;
+    }
+
+    MBEDTLS_MPI_CHK( mbedtls_mpi_write_binary( &P.X, z, zlen / 2 ) );
+    MBEDTLS_MPI_CHK( mbedtls_mpi_write_binary( &P.Y, z + zlen / 2, zlen / 2 ) );
+
+cleanup:
+    mbedtls_ecp_point_free( &P );
+
+    return( ret );
+}
+
+int vsl_ecdsa_gen_shared(unsigned char private_key[CONFIG_ECDSA_PRIKEY_LEN],
+                         unsigned char peer_public_key[CONFIG_ECDSA_PUBKEY_LEN],
+                         unsigned char shared_key[CONFIG_ECDSA_SHRKEY_LEN])
+{
+    int ret = -1;
+
+    if (private_key == NULL || peer_public_key == NULL || shared_key == NULL) {
+        vlog_error("illegal input param");
+        return -1;
+    }
+    if (vsl_ecdsa_init() != 0) {
+        vlog_error("vsl_ecdsa_init failed");
+        goto exit;
+    }
+    mbedtls_ecp_group_load(&s_ctx->ecdsa.grp, s_curve_id);
+
+    ret = mbedtls_mpi_lset(&s_ctx->ecdsa.Q.Z, 1);
+    if (ret != 0) {
+        vlog_error("mbedtls_mpi_lset returned %d", ret);
+        goto exit;
+    }
+    ret = mbedtls_mpi_read_binary(&s_ctx->ecdsa.Q.X, peer_public_key, CONFIG_ECDSA_PUBKEY_LEN / 2);
+    if (ret != 0) {
+        vlog_error("mbedtls_mpi_read_binary returned %d", ret);
+        goto exit;
+    }
+    ret = mbedtls_mpi_read_binary(&s_ctx->ecdsa.Q.Y, peer_public_key + CONFIG_ECDSA_PUBKEY_LEN / 2,
+                                  CONFIG_ECDSA_PUBKEY_LEN / 2);
+    if (ret != 0) {
+        vlog_error("mbedtls_mpi_read_binary returned %d", ret);
+        goto exit;
+    }
+
+    ret = mbedtls_mpi_read_binary(&s_ctx->ecdsa.d, private_key, CONFIG_ECDSA_PRIKEY_LEN);
+    if (ret != 0) {
+        vlog_error("mbedtls_mpi_read_binary returned %d", ret);
+        goto exit;
+    }
+
+    ret = __compute_shared_restartable(&s_ctx->ecdsa.grp, shared_key, CONFIG_ECDSA_SHRKEY_LEN,
+        &s_ctx->ecdsa.Q, &s_ctx->ecdsa.d, mbedtls_ctr_drbg_random, &s_ctx->ctr_drbg);
+    if (ret != 0) {
+        vlog_error("__compute_shared_restartable returned %d", ret);
+        goto exit;
+    }
+
+    ret = 0;
+
+exit:
+    vsl_ecdsa_destroy();
+    return (ret ? -1 : 0);
+}
+
+
+int vsl_ecdsa_set_curve(const char *name)
+{
+    if (name == NULL) {
+        return -1;
+    }
+
+    if (strcmp(name, "secp256r1") == 0) {
+        s_curve_id = MBEDTLS_ECP_DP_SECP256R1;
+    } else if (strcmp(name, "secp256k1") == 0) {
+        s_curve_id = MBEDTLS_ECP_DP_SECP256K1;
+    } else if (strcmp(name, "brainpoolP256r1") == 0) {
+        s_curve_id = MBEDTLS_ECP_DP_BP256R1;
+    } else {
+        return -1;
+    }
+    return 0;
 }

@@ -23,6 +23,7 @@ extern "C" {
 #define CONFIG_ECDSA_PUBKEY_LEN 64 /* public key (X+Y) */
 #define CONFIG_ECDSA_PRIKEY_LEN 32 /* private key */
 #define CONFIG_ECDSA_SIG_LEN    64 /* raw signature (r+s), not encoded by ANS.1 */
+#define CONFIG_ECDSA_SHRKEY_LEN 64 /* shared key (X+Y) */
 
 int vsl_ecdsa_gen_keypair(unsigned char public_key[CONFIG_ECDSA_PUBKEY_LEN],
                       unsigned char private_key[CONFIG_ECDSA_PRIKEY_LEN]);
@@ -30,6 +31,13 @@ int vsl_ecdsa_sign(unsigned char private_key[CONFIG_ECDSA_PRIKEY_LEN], unsigned 
                unsigned int data_len, unsigned char out_sig[CONFIG_ECDSA_SIG_LEN]);
 int vsl_ecdsa_verify(unsigned char peer_public_key[CONFIG_ECDSA_PUBKEY_LEN], unsigned char *data,
                  unsigned int data_len, unsigned char in_sig[CONFIG_ECDSA_SIG_LEN]);
+int vsl_ecdsa_gen_shared(unsigned char private_key[CONFIG_ECDSA_PRIKEY_LEN],
+                         unsigned char peer_public_key[CONFIG_ECDSA_PUBKEY_LEN],
+                         unsigned char shared_key[CONFIG_ECDSA_SHRKEY_LEN]);
+
+// support: "secp256r1", "secp256k1", "brainpoolP256r1"
+// default: "secp256k1"
+int vsl_ecdsa_set_curve(const char *name);
 
 #ifdef __cplusplus
 }

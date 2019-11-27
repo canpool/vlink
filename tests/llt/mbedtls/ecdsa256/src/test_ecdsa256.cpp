@@ -60,6 +60,7 @@ TEST_F(TestEcdsa256, key)
 	unsigned char private_key[2][CONFIG_ECDSA_PRIKEY_LEN] = {0};
 	unsigned char signature[2][CONFIG_ECDSA_SIG_LEN] = {0};
 	unsigned char message[20] = "hello ecdsa";
+	unsigned char shared_key[2][CONFIG_ECDSA_SHRKEY_LEN] = {0};
 
 	// vsl_ecdsa_init();
 	vsl_ecdsa_gen_keypair(public_key[0], private_key[0]);
@@ -78,6 +79,16 @@ TEST_F(TestEcdsa256, key)
 		printf("private key: \n");
 		print_array(private_key[i], CONFIG_ECDSA_PRIKEY_LEN);
 		printf("----------------------------------------\n");
+	}
+
+	vsl_ecdsa_gen_shared(private_key[0], public_key[1], shared_key[0]);
+	vsl_ecdsa_gen_shared(private_key[1], public_key[0], shared_key[1]);
+	for (i = 0; i < 2; i++) {
+		printf("shared key %d:\n", i);
+		print_array(shared_key[i], CONFIG_ECDSA_SHRKEY_LEN);
+	}
+	for (i = 0; i < CONFIG_ECDSA_SHRKEY_LEN; i++) {
+		EXPECT_EQ(shared_key[0][i], shared_key[1][i]);
 	}
 
 	// vsl_ecdsa_destroy();
@@ -127,4 +138,40 @@ TEST_F(TestEcdsa256, time)
 	gettimeofday(&tpend, NULL);
 	printf("vsl_ecdsa_verify()\n\telapsed time %f us\n", elapsed_time(&tpend, &tpstart));
 
+}
+
+TEST_F(TestEcdsa256, curve)
+{
+	int i;
+	unsigned char public_key[2][CONFIG_ECDSA_PUBKEY_LEN] = {0};
+	unsigned char private_key[2][CONFIG_ECDSA_PRIKEY_LEN] = {0};
+	unsigned char signature[2][CONFIG_ECDSA_SIG_LEN] = {0};
+	unsigned char message[20] = "hello ecdsa";
+	unsigned char shared_key[2][CONFIG_ECDSA_SHRKEY_LEN] = {0};
+
+	vsl_ecdsa_gen_keypair(public_key[0], private_key[0]);
+	EXPECT_EQ(0, vsl_ecdsa_sign(private_key[0], message, sizeof(message), signature[0]));
+	printf("signature: \n");
+	print_array(signature[0], CONFIG_ECDSA_SIG_LEN);
+	printf("----------------------------------------\n");
+
+	vsl_ecdsa_set_curve("brainpoolP256r1");
+	vsl_ecdsa_gen_keypair(public_key[1], private_key[1]);
+	EXPECT_EQ(-1, vsl_ecdsa_verify(public_key[0], message, sizeof(message), signature[0]));
+
+	for (i = 0; i < 2; i++) {
+		printf("keypair %d:\n", i);
+		printf("public key: \n");
+		print_array(public_key[i], CONFIG_ECDSA_PUBKEY_LEN);
+		printf("private key: \n");
+		print_array(private_key[i], CONFIG_ECDSA_PRIKEY_LEN);
+		printf("----------------------------------------\n");
+	}
+
+	vsl_ecdsa_gen_shared(private_key[0], public_key[1], shared_key[0]);
+	vsl_ecdsa_gen_shared(private_key[1], public_key[0], shared_key[1]);
+	for (i = 0; i < 2; i++) {
+		printf("shared key %d:\n", i);
+		print_array(shared_key[i], CONFIG_ECDSA_SHRKEY_LEN);
+	}
 }
