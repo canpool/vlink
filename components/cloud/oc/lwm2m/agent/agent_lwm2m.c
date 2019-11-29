@@ -40,9 +40,6 @@ int lwm2m_agent_receive(oc_lwm2m_msg_e type, char *msg, int len)
 
 int agent_op_init(uintptr_t *handle, oc_config_t *config)
 {
-    if (handle == NULL || config == NULL) {
-        return -1;
-    }
     if (s_agent_lwm2m != NULL) {
         return -1;
     }
@@ -91,10 +88,6 @@ int agent_op_destroy(uintptr_t handle)
 {
     agent_lwm2m_t *agent = (agent_lwm2m_t *)handle;
 
-    if (agent == NULL || agent != s_agent_lwm2m) {
-        return -1;
-    }
-
     lwm2m_al_destroy(agent->m2m);
 
     vos_free(agent);
@@ -107,10 +100,6 @@ int agent_op_report(uintptr_t handle, int type, char *msg, int len, uint32_t tim
 {
     agent_lwm2m_t *agent = (agent_lwm2m_t *)handle;
     const char *uri = NULL;
-
-    if (agent == NULL || agent != s_agent_lwm2m || msg == NULL || len <= 0) {
-        return -1;
-    }
 
     switch (type)
     {

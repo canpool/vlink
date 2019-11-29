@@ -58,9 +58,9 @@ typedef struct {
 typedef uintptr_t lwm2mer_t;
 
 typedef struct {
-    int (*init)     (lwm2mer_t *m2m, lwm2m_al_config_t *config);
-    int (*destroy)  (lwm2mer_t  m2m);
-    int (*send)     (lwm2mer_t  m2m, const char *uri, const char *msg, int len, uint32_t timeout);
+    int (*init)     (uintptr_t *handle, lwm2m_al_config_t *config);
+    int (*destroy)  (uintptr_t  handle);
+    int (*send)     (uintptr_t  handle, const char *uri, const char *msg, int len, uint32_t timeout);
 } lwm2m_al_ops_t;
 
 int lwm2m_al_init(lwm2mer_t *m2m, lwm2m_al_config_t *config);

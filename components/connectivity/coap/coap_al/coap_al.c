@@ -14,65 +14,121 @@
  */
 
 #include "coap_al.h"
+#include "vos.h"
 
 typedef struct {
     const coap_al_ops_t   *ops;
 } coap_al_cb_t;
 
+typedef struct {
+    uintptr_t            magic;
+    uintptr_t            handle;
+} coap_al_context_t;
+
 static coap_al_cb_t s_coap_al;
 
 int coap_al_init(coaper_t *coaper, coap_al_config_t *config)
 {
+    coap_al_context_t *al_ctx = NULL;
+
     if (coaper == NULL || config == NULL) {
+        return -1;
+    }
+    al_ctx = (coap_al_context_t *)(*coaper);
+    if (magic_verify(al_ctx)) {
         return -1;
     }
     if (s_coap_al.ops == NULL || s_coap_al.ops->init == NULL) {
         return -1;
     }
-    return s_coap_al.ops->init(coaper, config);
-}
 
-int coap_al_destroy(coaper_t *coaper)
-{
-    if (coaper == NULL || s_coap_al.ops == NULL || s_coap_al.ops->destroy == NULL) {
+    al_ctx = (coap_al_context_t *)vos_zalloc(sizeof(coap_al_context_t));
+    if (al_ctx == NULL) {
         return -1;
     }
-    if (s_coap_al.ops->destroy(coaper) != 0) {
+
+    if (s_coap_al.ops->init(&al_ctx->handle, config) != 0) {
+        vos_free(al_ctx);
         return -1;
     }
+    al_ctx->magic = (uintptr_t)al_ctx;
+    *coaper = (coaper_t)al_ctx;
+
     return 0;
 }
 
-int coap_al_add_option(coaper_t *coaper, uint16_t number, size_t len, const uint8_t *data)
+int coap_al_destroy(coaper_t coaper)
 {
-    if (coaper == NULL || s_coap_al.ops == NULL || s_coap_al.ops->add_option == NULL) {
+    coap_al_context_t *al_ctx = (coap_al_context_t *)(coaper);
+
+    if (!magic_verify(al_ctx)) {
         return -1;
     }
-    return s_coap_al.ops->add_option(coaper, number, len, data);
+    if (s_coap_al.ops == NULL || s_coap_al.ops->destroy == NULL) {
+        return -1;
+    }
+    if (s_coap_al.ops->destroy(al_ctx->handle) != 0) {
+        return -1;
+    }
+    al_ctx->magic = 0;
+    vos_free(al_ctx);
+
+    return 0;
 }
 
-int coap_al_request(coaper_t *coaper, uint8_t msgtype, uint8_t code, uint8_t *payload, size_t len)
+int coap_al_add_option(coaper_t coaper, uint16_t number, size_t len, const uint8_t *data)
 {
-    if (coaper == NULL || s_coap_al.ops == NULL || s_coap_al.ops->request == NULL) {
+    coap_al_context_t *al_ctx = (coap_al_context_t *)(coaper);
+
+    if (!magic_verify(al_ctx)) {
         return -1;
     }
-    return s_coap_al.ops->request(coaper, msgtype, code, payload, len);
+    if (data == NULL || len == 0) {
+        return -1;
+    }
+    if (s_coap_al.ops == NULL || s_coap_al.ops->add_option == NULL) {
+        return -1;
+    }
+    return s_coap_al.ops->add_option(al_ctx->handle, number, len, data);
 }
 
-int coap_al_send(coaper_t *coaper)
+void * coap_al_request(coaper_t coaper, uint8_t msgtype, uint8_t code, uint8_t *payload, size_t len)
 {
-    if (coaper == NULL || s_coap_al.ops == NULL || s_coap_al.ops->send == NULL) {
-        return -1;
+    coap_al_context_t *al_ctx = (coap_al_context_t *)(coaper);
+
+    if (!magic_verify(al_ctx)) {
+        return NULL;
     }
-    return s_coap_al.ops->send(coaper);
+    if (s_coap_al.ops == NULL || s_coap_al.ops->request == NULL) {
+        return NULL;
+    }
+    return s_coap_al.ops->request(al_ctx->handle, msgtype, code, payload, len);
 }
 
-int coap_al_recv(coaper_t *coaper)
+int coap_al_send(coaper_t coaper, void *msg)
 {
-    if (coaper == NULL || s_coap_al.ops == NULL || s_coap_al.ops->recv == NULL) {
+    coap_al_context_t *al_ctx = (coap_al_context_t *)(coaper);
+
+    if (!magic_verify(al_ctx)) {
         return -1;
     }
-    return s_coap_al.ops->recv(coaper);
+    if (s_coap_al.ops == NULL || s_coap_al.ops->send == NULL) {
+        return -1;
+    }
+    return s_coap_al.ops->send(al_ctx->handle, msg);
+}
+
+int coap_al_recv(coaper_t coaper)
+{
+    coap_al_context_t *al_ctx = (coap_al_context_t *)(coaper);
+
+    if (!magic_verify(al_ctx)) {
+        return -1;
+    }
+    if (s_coap_al.ops == NULL || s_coap_al.ops->recv == NULL) {
+        return -1;
+    }
+    return s_coap_al.ops->recv(al_ctx->handle);
 }
 
 int coap_al_install(const coap_al_ops_t *ops)

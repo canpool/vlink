@@ -14,78 +14,144 @@
  */
 
 #include "mqtt_al.h"
+#include "vos.h"
 
 typedef struct {
-    const mqtt_al_ops_t   *ops;
+    const mqtt_al_ops_t *ops;
 } mqtt_al_cb_t;
+
+typedef struct {
+    uintptr_t            magic;
+    uintptr_t            handle;
+} mqtt_al_context_t;
 
 static mqtt_al_cb_t s_mqtt_al;
 
 int mqtt_al_init(mqtter_t *mqtter)
 {
+    mqtt_al_context_t *al_ctx = NULL;
+
     if (mqtter == NULL) {
+        return -1;
+    }
+    al_ctx = (mqtt_al_context_t *)(*mqtter);
+    if (magic_verify(al_ctx)) {
         return -1;
     }
     if (s_mqtt_al.ops == NULL || s_mqtt_al.ops->init == NULL) {
         return -1;
     }
-    return s_mqtt_al.ops->init(mqtter);
+
+    al_ctx = (mqtt_al_context_t *)vos_zalloc(sizeof(mqtt_al_context_t));
+    if (al_ctx == NULL) {
+        return -1;
+    }
+
+    if (s_mqtt_al.ops->init(&al_ctx->handle) != 0) {
+        vos_free(al_ctx);
+        return -1;
+    }
+    al_ctx->magic = (uintptr_t)al_ctx;
+    *mqtter = (mqtter_t)al_ctx;
+
+    return 0;
 }
 
 int mqtt_al_destroy(mqtter_t mqtter)
 {
+    mqtt_al_context_t *al_ctx = (mqtt_al_context_t *)(mqtter);
+
+    if (!magic_verify(al_ctx)) {
+        return -1;
+    }
     if (s_mqtt_al.ops == NULL || s_mqtt_al.ops->destroy == NULL) {
         return -1;
     }
-    return s_mqtt_al.ops->destroy(mqtter);
+    if (s_mqtt_al.ops->destroy(al_ctx->handle) != 0) {
+        return -1;
+    }
+    al_ctx->magic = 0;
+    vos_free(al_ctx);
+
+    return 0;
 }
 
 int mqtt_al_connect(mqtter_t mqtter, mqtt_al_conn_t *con)
 {
+    mqtt_al_context_t *al_ctx = (mqtt_al_context_t *)(mqtter);
+
+    if (!magic_verify(al_ctx)) {
+        return -1;
+    }
     if (con == NULL || s_mqtt_al.ops == NULL || s_mqtt_al.ops->connect == NULL) {
         return -1;
     }
-    return s_mqtt_al.ops->connect(mqtter, con);
+    return s_mqtt_al.ops->connect(al_ctx->handle, con);
 }
 
 int mqtt_al_disconnect(mqtter_t mqtter)
 {
+    mqtt_al_context_t *al_ctx = (mqtt_al_context_t *)(mqtter);
+
+    if (!magic_verify(al_ctx)) {
+        return -1;
+    }
     if (s_mqtt_al.ops == NULL || s_mqtt_al.ops->disconnect == NULL) {
         return -1;
     }
-    return s_mqtt_al.ops->disconnect(mqtter);
+    return s_mqtt_al.ops->disconnect(al_ctx->handle);
 }
 
 int mqtt_al_publish(mqtter_t mqtter, mqtt_al_pub_t *pub)
 {
+    mqtt_al_context_t *al_ctx = (mqtt_al_context_t *)(mqtter);
+
+    if (!magic_verify(al_ctx)) {
+        return -1;
+    }
     if (pub == NULL || s_mqtt_al.ops == NULL || s_mqtt_al.ops->publish == NULL) {
         return -1;
     }
-    return s_mqtt_al.ops->publish(mqtter, pub);
+    return s_mqtt_al.ops->publish(al_ctx->handle, pub);
 }
 
 int mqtt_al_subscribe(mqtter_t mqtter, mqtt_al_sub_t *sub)
 {
+    mqtt_al_context_t *al_ctx = (mqtt_al_context_t *)(mqtter);
+
+    if (!magic_verify(al_ctx)) {
+        return -1;
+    }
     if (sub == NULL || s_mqtt_al.ops == NULL || s_mqtt_al.ops->subscribe == NULL) {
         return -1;
     }
-    return s_mqtt_al.ops->subscribe(mqtter, sub);
+    return s_mqtt_al.ops->subscribe(al_ctx->handle, sub);
 }
 
 int mqtt_al_unsubscribe(mqtter_t mqtter, mqtt_al_unsub_t *unsub)
 {
+    mqtt_al_context_t *al_ctx = (mqtt_al_context_t *)(mqtter);
+
+    if (!magic_verify(al_ctx)) {
+        return -1;
+    }
     if (unsub == NULL || s_mqtt_al.ops == NULL || s_mqtt_al.ops->unsubscribe == NULL) {
         return -1;
     }
-    return s_mqtt_al.ops->unsubscribe(mqtter, unsub);
+    return s_mqtt_al.ops->unsubscribe(al_ctx->handle, unsub);
 }
 
 int mqtt_al_checkstatus(mqtter_t mqtter)
 {
+    mqtt_al_context_t *al_ctx = (mqtt_al_context_t *)(mqtter);
+
+    if (!magic_verify(al_ctx)) {
+        return -1;
+    }
     if (s_mqtt_al.ops == NULL || s_mqtt_al.ops->checkstatus == NULL) {
         return -1;
     }
-    return s_mqtt_al.ops->checkstatus(mqtter);
+    return s_mqtt_al.ops->checkstatus(al_ctx->handle);
 }
 
 int mqtt_al_install(const mqtt_al_ops_t *ops)

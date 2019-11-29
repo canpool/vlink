@@ -84,37 +84,26 @@ typedef struct {
     size_t           psk_key_len;
 } coap_al_config_t;
 
-typedef struct coap_al_context {
-    void            *ctx;        /**< coap context */
-    void            *session;    /**< coap session, if needed */
-    void            *ssl;        /**< ssl  context, if needed */
-
-    /* for receive */
-    uint32_t         now;        /**< current tick */
-
-    /* for send */
-    void            *optlist;    /**< header of option list */
-    void            *packet;     /**< coap packet */
-} coap_al_context_t, coaper_t;
+typedef uintptr_t   coaper_t;
 
 typedef struct {
-    int (*init)         (coaper_t *coaper, coap_al_config_t *config);
-    int (*destroy)      (coaper_t *coaper);
-    int (*add_option)   (coaper_t *coaper, uint16_t number, size_t len, const uint8_t *data);
-    int (*request)      (coaper_t *coaper, uint8_t msgtype, uint8_t code, uint8_t *payload, size_t len);
-    int (*send)         (coaper_t *coaper);
-    int (*recv)         (coaper_t *coaper);
+    int    (*init)      (uintptr_t *handle, coap_al_config_t *config);
+    int    (*destroy)   (uintptr_t  handle);
+    int    (*add_option)(uintptr_t  handle, uint16_t number, size_t len, const uint8_t *data);
+    void * (*request)   (uintptr_t  handle, uint8_t msgtype, uint8_t code, uint8_t *payload, size_t len);
+    int    (*send)      (uintptr_t  handle, void *msg);
+    int    (*recv)      (uintptr_t  handle);
 } coap_al_ops_t;
 
-int coap_al_init(coaper_t *coaper, coap_al_config_t *config);
-int coap_al_destroy(coaper_t *coaper);
-int coap_al_add_option(coaper_t *coaper, uint16_t number, size_t len, const uint8_t *data);
-int coap_al_request(coaper_t *coaper, uint8_t msgtype, uint8_t code, uint8_t *payload, size_t len);
-int coap_al_send(coaper_t *coaper);
-int coap_al_recv(coaper_t *coaper);
+int     coap_al_init(coaper_t *coaper, coap_al_config_t *config);
+int     coap_al_destroy(coaper_t coaper);
+int     coap_al_add_option(coaper_t coaper, uint16_t number, size_t len, const uint8_t *data);
+void *  coap_al_request(coaper_t coaper, uint8_t msgtype, uint8_t code, uint8_t *payload, size_t len);
+int     coap_al_send(coaper_t coaper, void *msg);
+int     coap_al_recv(coaper_t coaper);
 
-int coap_al_install(const coap_al_ops_t *ops);
-int coap_al_uninstall(void);
+int     coap_al_install(const coap_al_ops_t *ops);
+int     coap_al_uninstall(void);
 
 #ifdef __cplusplus
 }

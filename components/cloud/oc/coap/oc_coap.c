@@ -24,6 +24,7 @@ typedef struct {
 } oc_coap_t;
 
 typedef struct {
+    uintptr_t       magic;
     uintptr_t       handle;
     const oc_ops_t *ops;
 } oc_coap_context_t;
@@ -32,52 +33,67 @@ static oc_coap_t s_coap;
 
 int oc_coap_init(oc_context_t *ctx, oc_config_t *config)
 {
-    oc_coap_context_t *oc_coap = NULL;
+    oc_coap_context_t *oc_ctx = NULL;
 
     if (ctx == NULL || config == NULL) {
         return -1;
     }
-
+    oc_ctx = (oc_coap_context_t *)(*ctx);
+    if (magic_verify(oc_ctx)) {
+        return -1;
+    }
     if (s_coap.ops == NULL || s_coap.ops->init == NULL) {
         return -1;
     }
 
-    oc_coap = (oc_coap_context_t *)vos_zalloc(sizeof(oc_coap_context_t));
-    if (oc_coap == NULL) {
+    oc_ctx = (oc_coap_context_t *)vos_zalloc(sizeof(oc_coap_context_t));
+    if (oc_ctx == NULL) {
         return -1;
     }
-    if (s_coap.ops->init(&oc_coap->handle, config) != 0) {
-        vos_free(oc_coap);
+    if (s_coap.ops->init(&oc_ctx->handle, config) != 0) {
+        vos_free(oc_ctx);
         return -1;
     }
-    oc_coap->ops = s_coap.ops;
-    *ctx = (oc_context_t)oc_coap;
+    oc_ctx->ops = s_coap.ops;
+    oc_ctx->magic = (uintptr_t)oc_ctx;
+    *ctx = (oc_context_t)oc_ctx;
 
     return 0;
 }
 
 int oc_coap_destroy(oc_context_t ctx)
 {
-    oc_coap_context_t *oc_coap = (oc_coap_context_t *)ctx;
+    oc_coap_context_t *oc_ctx = (oc_coap_context_t *)ctx;
 
-    if (oc_coap == NULL || oc_coap->ops == NULL || oc_coap->ops->destroy == NULL) {
+    if (!magic_verify(oc_ctx)) {
         return -1;
     }
-    if (oc_coap->ops->destroy(oc_coap->handle) == 0) {
-        vos_free(oc_coap);
-        return 0;
+    if (oc_ctx->ops == NULL || oc_ctx->ops->destroy == NULL) {
+        return -1;
     }
-    return -1;
+    if (oc_ctx->ops->destroy(oc_ctx->handle) != 0) {
+        return -1;
+    }
+    oc_ctx->magic = 0;
+    vos_free(oc_ctx);
+
+    return 0;
 }
 
 int oc_coap_report(oc_context_t ctx, char *msg, int len)
 {
-    oc_coap_context_t *oc_coap = (oc_coap_context_t *)ctx;
+    oc_coap_context_t *oc_ctx = (oc_coap_context_t *)ctx;
 
-    if (oc_coap == NULL || oc_coap->ops == NULL || oc_coap->ops->report == NULL) {
+    if (!magic_verify(oc_ctx)) {
         return -1;
     }
-    return oc_coap->ops->report(oc_coap->handle, msg, len);
+    if (msg == NULL || len <= 0) {
+        return -1;
+    }
+    if (oc_ctx->ops == NULL || oc_ctx->ops->report == NULL) {
+        return -1;
+    }
+    return oc_ctx->ops->report(oc_ctx->handle, msg, len);
 }
 
 int oc_coap_register(const char *name, const oc_ops_t *ops)

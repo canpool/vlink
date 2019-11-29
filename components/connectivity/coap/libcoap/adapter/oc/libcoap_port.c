@@ -32,6 +32,18 @@
 
 #include "vos.h"
 
+typedef struct {
+    coap_context_t  *ctx;        /**< coap context */
+    coap_session_t  *session;    /**< coap session, if needed */
+    void            *ssl;        /**< ssl  context, if needed */
+
+    /* for receive */
+    uint32_t         now;        /**< current tick */
+
+    /* for send */
+    coap_optlist_t  *optlist;    /**< header of option list */
+} coap_cb_t;
+
 extern int g_bind_finsh;
 
 static cmd_dealer_fn cmd_func = NULL;
@@ -666,10 +678,16 @@ static coap_session_t *get_session(coap_context_t *ctx, coap_al_config_t *config
     return session;
 }
 
-static int __init(coaper_t *coaper, coap_al_config_t *config)
+static int __init(uintptr_t *handle, coap_al_config_t *config)
 {
+    coap_cb_t *cb = NULL;
     coap_context_t *ctx = NULL;
     coap_session_t *session = NULL;
+
+    cb = (coap_cb_t *)vos_zalloc(sizeof(coap_cb_t));
+    if (cb == NULL) {
+        return -1;
+    }
 
     coap_set_log_level(LOG_ERR);
 
@@ -677,7 +695,7 @@ static int __init(coaper_t *coaper, coap_al_config_t *config)
     dtls_context *dtls = get_dtls(config);
     if (dtls == NULL) {
         coap_log(LOG_ERR, "get_dtls() failed!\r\n");
-        return -1;
+        goto EXIT_FAIL;
     }
 #endif
 
@@ -703,13 +721,13 @@ static int __init(coaper_t *coaper, coap_al_config_t *config)
 
     cmd_func = config->dealer;
 
-    coaper->ctx = ctx;
-    coaper->session = session;
+    cb->ctx = ctx;
+    cb->session = session;
 #ifdef WITH_DTLS
     ctx->dtls_context = dtls;
-    coaper->ssl = dtls;
+    cb->ssl = dtls;
 #endif
-
+    *handle = (uintptr_t)cb;
     return 0;
 
 EXIT_FAIL:
@@ -724,17 +742,20 @@ EXIT_FAIL:
     if (session != NULL) {
         coap_session_free(session);
     }
+    if (cb != NULL) {
+        vos_free(cb);
+    }
     return -1;
 }
 
-static int __destroy(coaper_t *coaper)
+static int __destroy(uintptr_t handle)
 {
-    coap_context_t *ctx = (coap_context_t *)coaper->ctx;
+    coap_cb_t *cb = (coap_cb_t *)handle;
+    coap_context_t *ctx = cb->ctx;
 #ifdef WITH_DTLS
-    dtls_context *dtls = (dtls_context *)coaper->ssl;
+    dtls_context *dtls = (dtls_context *)cb->ssl;
 #endif
-    coap_optlist_t *optlist = (coap_optlist_t *)coaper->optlist;
-    coap_pdu_t *pdu = (coap_pdu_t *)coaper->packet;
+    coap_optlist_t *optlist = cb->optlist;
 
     if (ctx != NULL) {
         coap_free_context(ctx); // free session at the same time
@@ -747,10 +768,7 @@ static int __destroy(coaper_t *coaper)
     if (optlist != NULL) {
         coap_delete_optlist(optlist);
     }
-    if (pdu != NULL) {
-        coap_delete_pdu(pdu);
-    }
-    memset(coaper, 0, sizeof(coaper_t));
+    vos_free(cb);
 
     if (s_optlist != NULL) {
         coap_delete_optlist(s_optlist);
@@ -760,57 +778,55 @@ static int __destroy(coaper_t *coaper)
     return 0;
 }
 
-static int __add_option(coaper_t *coaper, uint16_t number, size_t len, const uint8_t *data)
+static int __add_option(uintptr_t handle, uint16_t number, size_t len, const uint8_t *data)
 {
-    int ret = coap_insert_optlist((coap_optlist_t **)&coaper->optlist, coap_new_optlist(number, len, data));
+    coap_cb_t *cb = (coap_cb_t *)handle;
+    int ret = coap_insert_optlist(&cb->optlist, coap_new_optlist(number, len, data));
 
     return ret ? 0 : -1;
 }
 
-static int __request(coaper_t *coaper, uint8_t msg_type, uint8_t code, uint8_t *payload, size_t len)
+static void * __request(uintptr_t handle, uint8_t msg_type, uint8_t code, uint8_t *payload, size_t len)
 {
-    int ret = 0;
-    coap_pdu_t *msg = NULL;
+    coap_pdu_t *pdu = NULL;
+    coap_cb_t *cb = (coap_cb_t *)handle;
 
     msgtype = msg_type;
-    msg = coap_new_request((coap_context_t *)coaper->ctx, (coap_session_t *)coaper->session, code,
-                           (coap_optlist_t **)&coaper->optlist, payload, len);
-    if (msg == NULL) {
-        coap_delete_optlist((coap_optlist_t *)coaper->optlist);
-        ret = -1;
+    pdu = coap_new_request(cb->ctx, cb->session, code, &cb->optlist, payload, len);
+    if (pdu == NULL) {
+        coap_delete_optlist(cb->optlist);
     } else {
         if (msg_type == COAP_MESSAGE_CON) {
             if (s_optlist != NULL) {
                 coap_delete_optlist(s_optlist);
             }
-            s_optlist = (coap_optlist_t *)coaper->optlist;
+            s_optlist = cb->optlist;
         } else {
-            coap_delete_optlist((coap_optlist_t *)coaper->optlist);
+            coap_delete_optlist(cb->optlist);
         }
     }
-    coaper->optlist = NULL;
-    coaper->packet = msg;
+    cb->optlist = NULL;
 
-    return ret;
+    return pdu;
 }
 
-static int __send(coaper_t *coaper)
+static int __send(uintptr_t handle, void *msg)
 {
     int ret = -1;
-    coap_pdu_t *msg = (coap_pdu_t *)coaper->packet;
+    coap_cb_t *cb = (coap_cb_t *)handle;
+    coap_pdu_t *pdu = (coap_pdu_t *)msg;
 
-    if (msg != NULL) {
-        ret = coap_send((coap_session_t *)coaper->session, msg);
+    if (pdu != NULL) {
+        ret = coap_send(cb->session, pdu);
         if (ret == -1) {
             coap_log(LOG_ERR, "coap_send() failed\n");
         }
-        coaper->packet = NULL;
     }
 
     return ret;
 }
 
-static int __timeout_check(coaper_t *coaper, int delay_ms)
+static int __timeout_check(coap_cb_t *cb, int delay_ms)
 {
     int ret = 0;
     if (delay_ms >= 0) {
@@ -826,7 +842,7 @@ static int __timeout_check(coaper_t *coaper, int delay_ms)
             if ((unsigned)delay_ms >= obs_ms) {
                 coap_log(LOG_DEBUG, "clear observation relationship\n");
                 /* FIXME: handle error case COAP_TID_INVALID */
-                clear_obs((coap_context_t *)coaper->ctx, (coap_session_t *)coaper->session);
+                clear_obs(cb->ctx, cb->session);
 
                 /* make sure that the obs timer does not fire again */
                 obs_ms = 0;
@@ -842,13 +858,14 @@ static int __timeout_check(coaper_t *coaper, int delay_ms)
     return ret;
 }
 
-static int __recv(coaper_t *coaper)
+static int __recv(uintptr_t handle)
 {
     coap_tick_t before;
     coap_socket_t *sockets[64];
     unsigned int num_sockets = 0, i, timeout;
     unsigned int timeout_ms = (wait_ms == 0 ? obs_ms : obs_ms == 0 ? min(wait_ms, 1000) : min(wait_ms, obs_ms));
-    coap_context_t *ctx = (coap_context_t *)coaper->ctx;
+    coap_cb_t *cb = (coap_cb_t *)handle;
+    coap_context_t *ctx = cb->ctx;
 
     coap_ticks(&before);
 
@@ -867,11 +884,11 @@ static int __recv(coaper_t *coaper)
             sockets[i]->flags |= COAP_SOCKET_CAN_CONNECT;
     }
 
-    coap_ticks((coap_tick_t *)&coaper->now);
-    coap_read(ctx, (coap_tick_t)coaper->now);
+    coap_ticks((coap_tick_t *)&cb->now);
+    coap_read(ctx, (coap_tick_t)cb->now);
 
-    int delay_ms = (((coap_tick_t)coaper->now - before) * 1000) / COAP_TICKS_PER_SECOND;
-    if (__timeout_check(coaper, delay_ms)) {
+    int delay_ms = (((coap_tick_t)cb->now - before) * 1000) / COAP_TICKS_PER_SECOND;
+    if (__timeout_check(cb, delay_ms)) {
         coap_delete_optlist(s_optlist);
         s_optlist = NULL;
     }

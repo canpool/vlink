@@ -104,6 +104,16 @@ extern "C" {
 #define __CVTSTR(s)             __CVTSTR_RAW(s)
 #endif
 
+/*
+ * struct obj {
+ *     uintptr_t magic;
+ *     ...
+ * }
+ */
+#ifndef magic_verify
+#define magic_verify(obj_p)   (((uintptr_t)obj_p != 0) && (obj_p->magic == (uintptr_t)obj_p))
+#endif
+
 #ifdef __cplusplus
 }
 #endif /* __cplusplus */

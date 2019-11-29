@@ -33,8 +33,6 @@ typedef struct {
     int quit_flag;
 } lwm2m_cb_t;
 
-static lwm2m_cb_t *s_lwm2m_cb = NULL;
-
 static int lwm2m_init_objects(lwm2m_cb_t *cb, int srv_id, lwm2m_al_config_t *config)
 {
     cb->obj_array[OBJ_SECURITY_INDEX] = get_security_object(srv_id, config);
@@ -182,8 +180,6 @@ static void __lwm2m_destroy(lwm2m_cb_t *cb)
     lwm2m_destroy_client_data(cb);
 
     vos_free(cb);
-
-    s_lwm2m_cb = NULL;
 }
 
 static int __task_entry(uintptr_t arg)
@@ -214,14 +210,10 @@ static int __task_entry(uintptr_t arg)
     return 0;
 }
 
-static int __init(lwm2mer_t *m2m, lwm2m_al_config_t *config)
+static int __init(uintptr_t *handle, lwm2m_al_config_t *config)
 {
     lwm2m_cb_t *cb = NULL;
     int ret = -1;
-
-    if (m2m == NULL || config == NULL || s_lwm2m_cb != NULL) {
-        return -1;
-    }
 
     cb = (lwm2m_cb_t *)vos_zalloc(sizeof(lwm2m_cb_t));
     if (cb == NULL) {
@@ -256,8 +248,7 @@ static int __init(lwm2mer_t *m2m, lwm2m_al_config_t *config)
         goto EXIT_DESTROY_CLIENT_DATA;
     }
 
-    s_lwm2m_cb = cb;
-    *m2m = (lwm2mer_t)cb;
+    *handle = (uintptr_t)cb;
 
     return 0;
 
@@ -277,27 +268,18 @@ EXIT_FREE_CB:
     return -1;
 }
 
-static int __destroy(lwm2mer_t m2m)
+static int __destroy(uintptr_t handle)
 {
-    lwm2m_cb_t *cb = (lwm2m_cb_t *)m2m;
+    lwm2m_cb_t *cb = (lwm2m_cb_t *)handle;
 
-    if (s_lwm2m_cb == NULL || cb != s_lwm2m_cb) {
-        return -1;
-    }
     __lwm2m_destroy(cb);
-    s_lwm2m_cb = NULL;
     return 0;
 }
 
-static int __send(lwm2mer_t m2m, const char *uri, const char *msg, int len, uint32_t timeout)
+static int __send(uintptr_t handle, const char *uri, const char *msg, int len, uint32_t timeout)
 {
-    lwm2m_cb_t *cb = (lwm2m_cb_t *)m2m;
     lwm2m_uri_t lwm2m_uri;
     rpt_data_t data;
-
-    if (s_lwm2m_cb == NULL || cb != s_lwm2m_cb) {
-        return -1;
-    }
 
     if (lwm2m_stringToUri(uri, strlen(uri), &lwm2m_uri) == 0) {
         return -1;

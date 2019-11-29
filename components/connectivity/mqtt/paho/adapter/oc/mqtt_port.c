@@ -37,7 +37,7 @@ typedef struct {
     vtask_t              task;
     void                *sendbuf;
     void                *recvbuf;
-} paho_mqtt_t;
+} mqtt_cb_t;
 
 static int s_yield = 0;
 
@@ -186,7 +186,7 @@ static int __io_disconnect(Network *n)
 
 static int __task_entry(uintptr_t arg)
 {
-    paho_mqtt_t *cb = (paho_mqtt_t *)arg;
+    mqtt_cb_t *cb = (mqtt_cb_t *)arg;
 
     while (1) {
         // poll here, if you need
@@ -200,16 +200,13 @@ static int __task_entry(uintptr_t arg)
     return 0;
 }
 
-static int __init(mqtter_t *mqtter)
+static int __init(uintptr_t *handle)
 {
-    paho_mqtt_t     *cb = NULL;
-    Network         *n = NULL;
-    MQTTClient      *c = NULL;
+    mqtt_cb_t   *cb = NULL;
+    Network     *n = NULL;
+    MQTTClient  *c = NULL;
 
-    if (mqtter == NULL) {
-        return -1;
-    }
-    cb = (paho_mqtt_t *)vos_zalloc(sizeof(paho_mqtt_t));
+    cb = (mqtt_cb_t *)vos_zalloc(sizeof(mqtt_cb_t));
     if (cb == NULL) {
         return -1;
     }
@@ -227,7 +224,7 @@ static int __init(mqtter_t *mqtter)
     c = &cb->client;
     MQTTClientInit(c, n, MQTT_CMD_TIMEOUT_MS, cb->sendbuf, MQTT_SEND_BUF_SIZE, cb->recvbuf, MQTT_RECV_BUF_SIZE);
 
-    *mqtter = (mqtter_t)cb;
+    *handle = (uintptr_t)cb;
     return 0;
 
 EXIT_BUF_MEM_ERR:
@@ -241,17 +238,11 @@ EXIT_BUF_MEM_ERR:
     return -1;
 }
 
-static int __destroy(mqtter_t mqtter)
+static int __destroy(uintptr_t handle)
 {
-    paho_mqtt_t     *cb = (paho_mqtt_t *)mqtter;
-    Network         *n = NULL;
-    MQTTClient      *c = NULL;
-
-    if (cb == NULL) {
-        return -1;
-    }
-    n = &cb->network;
-    c = &cb->client;
+    mqtt_cb_t   *cb = (mqtt_cb_t *)handle;
+    Network     *n = &cb->network;
+    MQTTClient  *c = &cb->client;
 
     if (MQTTIsConnected(c)) {
         MQTTDisconnect(c);
@@ -267,20 +258,15 @@ static int __destroy(mqtter_t mqtter)
     return 0;
 }
 
-static int __connect(mqtter_t mqtter, mqtt_al_conn_t *con)
+static int __connect(uintptr_t handle, mqtt_al_conn_t *con)
 {
-    paho_mqtt_t   *cb = (paho_mqtt_t *)mqtter;
-    Network       *n = NULL;
-    MQTTClient    *c = NULL;
+    mqtt_cb_t   *cb = (mqtt_cb_t *)handle;
+    Network     *n = &cb->network;
+    MQTTClient  *c = &cb->client;
     MQTTPacket_connectData option = MQTTPacket_connectData_initializer;
     MQTTConnackData conack;
     int ret;
 
-    if (cb == NULL || con == NULL) {
-        return -1;
-    }
-    n = &cb->network;
-    c = &cb->client;
     n->arg = (uintptr_t)con->security;
 
     if ((ret = __io_connect(n, con->host, con->port)) != 0) {
@@ -333,17 +319,11 @@ EXIT_MQTT_CONNECT:
     return -1;
 }
 
-static int __disconnect(mqtter_t mqtter)
+static int __disconnect(uintptr_t handle)
 {
-    paho_mqtt_t     *cb = (paho_mqtt_t *)mqtter;
-    Network         *n = NULL;
-    MQTTClient      *c = NULL;
-
-    if (cb == NULL) {
-        return -1;
-    }
-    n = &cb->network;
-    c = &cb->client;
+    mqtt_cb_t   *cb = (mqtt_cb_t *)handle;
+    Network     *n = &cb->network;
+    MQTTClient  *c = &cb->client;
 
     MQTTDisconnect(c);
     __io_disconnect(n);
@@ -352,17 +332,13 @@ static int __disconnect(mqtter_t mqtter)
     return 0;
 }
 
-static int __publish(mqtter_t mqtter, mqtt_al_pub_t *pub)
+static int __publish(uintptr_t handle, mqtt_al_pub_t *pub)
 {
-    paho_mqtt_t *cb = (paho_mqtt_t *)mqtter;
-    MQTTClient  *c = NULL;
+    mqtt_cb_t   *cb = (mqtt_cb_t *)handle;
+    MQTTClient  *c = &cb->client;
     MQTTMessage  msg;
     int ret;
 
-    if (cb == NULL || pub == NULL) {
-        return -1;
-    }
-    c = &cb->client;
     memset(&msg, 0, sizeof(MQTTMessage));
     msg.retained = pub->retain;
     msg.qos = pub->qos;
@@ -404,17 +380,12 @@ static void message_handler(MessageData *data)
     }
 }
 
-static int __subscribe(mqtter_t mqtter, mqtt_al_sub_t *sub)
+static int __subscribe(uintptr_t handle, mqtt_al_sub_t *sub)
 {
-    paho_mqtt_t     *cb = (paho_mqtt_t *)mqtter;
-    MQTTClient      *c = NULL;
+    mqtt_cb_t       *cb = (mqtt_cb_t *)handle;
+    MQTTClient      *c = &cb->client;
     MQTTSubackData   ack;
     int ret;
-
-    if (cb == NULL || sub == NULL) {
-        return -1;
-    }
-    c = &cb->client;
 
     if ((ret = MQTTSubscribeWithResults(c, sub->topics[0].data, sub->qoss[0],
             message_handler, &ack, sub->dealer)) != SUCCESS) {
@@ -424,16 +395,11 @@ static int __subscribe(mqtter_t mqtter, mqtt_al_sub_t *sub)
     return ret;
 }
 
-static int __unsubscribe(mqtter_t mqtter, mqtt_al_unsub_t *unsub)
+static int __unsubscribe(uintptr_t handle, mqtt_al_unsub_t *unsub)
 {
-    paho_mqtt_t     *cb = (paho_mqtt_t *)mqtter;
-    MQTTClient      *c = NULL;
-    int              i;
-
-    if (cb == NULL || unsub == NULL) {
-        return -1;
-    }
-    c = &cb->client;
+    mqtt_cb_t   *cb = (mqtt_cb_t *)handle;
+    MQTTClient  *c = &cb->client;
+    int i;
 
     for (i = 0; i < unsub->count; ++i) {
         if (MQTTUnsubscribe(c, unsub->topics[i].data) != SUCCESS) {
@@ -444,16 +410,11 @@ static int __unsubscribe(mqtter_t mqtter, mqtt_al_unsub_t *unsub)
     return 0;
 }
 
-static int __checkstatus(mqtter_t mqtter)
+static int __checkstatus(uintptr_t handle)
 {
-    paho_mqtt_t     *cb = (paho_mqtt_t *)mqtter;
-    MQTTClient      *c = NULL;
+    mqtt_cb_t   *cb = (mqtt_cb_t *)handle;
+    MQTTClient  *c = &cb->client;
 
-    if (cb == NULL) {
-        return MQTT_AL_ERR_INVAL;
-    }
-
-    c = &cb->client;
     if (MQTTIsConnected(c)) {
         return MQTT_AL_ERR_NONE;
     }

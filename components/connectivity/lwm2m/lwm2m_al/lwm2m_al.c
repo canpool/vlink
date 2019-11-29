@@ -14,41 +14,82 @@
  */
 
 #include "lwm2m_al.h"
+#include "vos.h"
 
 typedef struct {
     const lwm2m_al_ops_t    *ops;
 } lwm2m_al_cb_t;
 
+typedef struct {
+    uintptr_t            magic;
+    uintptr_t            handle;
+} lwm2m_al_context_t;
+
 static lwm2m_al_cb_t s_lwm2m_al;
 
 int lwm2m_al_init(lwm2mer_t *m2m, lwm2m_al_config_t *config)
 {
+    lwm2m_al_context_t *al_ctx = NULL;
+
     if (m2m == NULL || config == NULL) {
+        return -1;
+    }
+    al_ctx = (lwm2m_al_context_t *)(*m2m);
+    if (magic_verify(al_ctx)) {
         return -1;
     }
     if (s_lwm2m_al.ops == NULL || s_lwm2m_al.ops->init == NULL) {
         return -1;
     }
-    return s_lwm2m_al.ops->init(m2m, config);
+
+    al_ctx = (lwm2m_al_context_t *)vos_zalloc(sizeof(lwm2m_al_context_t));
+    if (al_ctx == NULL) {
+        return -1;
+    }
+
+    if (s_lwm2m_al.ops->init(&al_ctx->handle, config) != 0) {
+        vos_free(al_ctx);
+        return -1;
+    }
+    al_ctx->magic = (uintptr_t)al_ctx;
+    *m2m = (lwm2mer_t)al_ctx;
+
+    return 0;
 }
 
 int lwm2m_al_destroy(lwm2mer_t m2m)
 {
+    lwm2m_al_context_t *al_ctx = (lwm2m_al_context_t *)(m2m);
+
+    if (!magic_verify(al_ctx)) {
+        return -1;
+    }
     if (s_lwm2m_al.ops == NULL || s_lwm2m_al.ops->destroy == NULL) {
         return -1;
     }
-    if (s_lwm2m_al.ops->destroy(m2m) != 0) {
+    if (s_lwm2m_al.ops->destroy(al_ctx->handle) != 0) {
         return -1;
     }
+    al_ctx->magic = 0;
+    vos_free(al_ctx);
+
     return 0;
 }
 
 int lwm2m_al_send(lwm2mer_t m2m, const char *uri, const char *msg, int len, uint32_t timeout)
 {
+    lwm2m_al_context_t *al_ctx = (lwm2m_al_context_t *)(m2m);
+
+    if (!magic_verify(al_ctx)) {
+        return -1;
+    }
+    if (uri == NULL || msg == NULL || len <= 0) {
+        return -1;
+    }
     if (s_lwm2m_al.ops == NULL || s_lwm2m_al.ops->send == NULL) {
         return -1;
     }
-    if (s_lwm2m_al.ops->send(m2m, uri, msg, len, timeout) != 0) {
+    if (s_lwm2m_al.ops->send(al_ctx->handle, uri, msg, len, timeout) != 0) {
         return -1;
     }
     return 0;

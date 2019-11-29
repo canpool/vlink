@@ -58,8 +58,6 @@ static int  s_agent_state = AGENT_STAT_INIT;
 static int  s_agent_errno = 0;
 static char s_agent_stop_flag = 0;
 
-static agent_coap_t *s_agent_coap = NULL;
-
 static int agent_errno_set(int err)
 {
     s_agent_errno = err;
@@ -129,20 +127,20 @@ static int agent_coap_step_init(agent_coap_t *agent)
 static int agent_coap_step_binding(agent_coap_t *agent)
 {
     size_t ed_len = strlen(agent->config.app_server.endpoint);
-    coaper_t *coaper = &agent->coaper;
+    void *msg = NULL;
 
-    coap_al_add_option(coaper, COAP_AL_OPTION_URI_PATH, 1, (uint8_t *)agent_res);
-    coap_al_add_option(coaper, COAP_AL_OPTION_URI_PATH, 1, (uint8_t *)agent_res1);
+    coap_al_add_option(agent->coaper, COAP_AL_OPTION_URI_PATH, 1, (uint8_t *)agent_res);
+    coap_al_add_option(agent->coaper, COAP_AL_OPTION_URI_PATH, 1, (uint8_t *)agent_res1);
 
     memcpy(agent_res2 + 3, agent->config.app_server.endpoint, ed_len);
 
-    coap_al_add_option(coaper, COAP_AL_OPTION_URI_QUERY, ed_len + 3, (uint8_t *)agent_res2);
+    coap_al_add_option(agent->coaper, COAP_AL_OPTION_URI_QUERY, ed_len + 3, (uint8_t *)agent_res2);
 
-    if (coap_al_request(coaper, COAP_AL_MESSAGE_CON, COAP_AL_REQUEST_POST, NULL, 0) != 0) {
+    if ((msg = coap_al_request(agent->coaper, COAP_AL_MESSAGE_CON, COAP_AL_REQUEST_POST, NULL, 0)) == NULL) {
         return -1;
     }
 
-    if (coap_al_send(coaper) < 0) {
+    if (coap_al_send(agent->coaper, msg) < 0) {
         return -1;
     }
     return 0;
@@ -160,7 +158,7 @@ static int agent_coap(uintptr_t args)
     while (1) {
         /* stop agent */
         if (s_agent_stop_flag) {
-            coap_al_destroy(&agent->coaper);
+            coap_al_destroy(agent->coaper);
             s_agent_stop_flag = 0;
             break;
         }
@@ -196,8 +194,7 @@ static int agent_coap(uintptr_t args)
                 break;
             }
             case AGENT_STAT_IDLE: {
-                agent->coaper.packet = NULL;
-                ret = coap_al_send(&agent->coaper);
+                ret = coap_al_send(agent->coaper, NULL);
                 break;
             }
             case AGENT_STAT_ERR:
@@ -210,7 +207,7 @@ static int agent_coap(uintptr_t args)
         }
         /* agent task should recive all coap messages. */
         if (startrcvmsg) {
-            ret = coap_al_recv(&agent->coaper);
+            ret = coap_al_recv(agent->coaper);
             if (ret < 0) {
                 agent_errno_set(AGENT_ERR_CODE_NETWORK);
                 vos_task_sleep(100);
@@ -224,9 +221,6 @@ static int agent_op_init(uintptr_t *handle, oc_config_t *config)
 {
     agent_coap_t *agent = NULL;
 
-    if (s_agent_coap != NULL) {
-        return -1;
-    }
     agent = (agent_coap_t *)vos_zalloc(sizeof(agent_coap_t));
     if (agent == NULL) {
         return -1;
@@ -255,7 +249,6 @@ static int agent_op_init(uintptr_t *handle, oc_config_t *config)
         vos_free(agent);
         return -1;
     }
-    s_agent_coap = agent;
     *handle = (uintptr_t)agent;
 
     return 0;
@@ -265,9 +258,6 @@ static int agent_op_destroy(uintptr_t handle)
 {
     agent_coap_t *agent = (agent_coap_t *)handle;
 
-    if (agent == NULL) {
-        return -1;
-    }
     /* set agent to stop send data */
     s_agent_stop_flag = 1;
     /* wait agent data process task finish recieve data and exit */
@@ -276,7 +266,6 @@ static int agent_op_destroy(uintptr_t handle)
     vos_task_delete(&agent->task);
 
     vos_free(agent);
-    s_agent_coap = NULL;
 
     return 0;
 }
@@ -285,11 +274,8 @@ static int agent_op_report(uintptr_t handle, char *buf, int len)
 {
     int ret = 0;
     agent_coap_t *agent = (agent_coap_t *)handle;
+    void *msg = NULL;
     static unsigned char lifetime = 0;
-
-    if (agent == NULL || agent->coaper.ctx == NULL) {
-        return AGENT_ERR;
-    }
 
     while (agent_state_get(NULL) != AGENT_STAT_IDLE) {
         ret++;
@@ -300,13 +286,13 @@ static int agent_op_report(uintptr_t handle, char *buf, int len)
     }
 
     lifetime++;
-    coap_al_add_option(&agent->coaper, COAP_AL_OPTION_OBSERVE, 1, (uint8_t *)&lifetime);
+    coap_al_add_option(agent->coaper, COAP_AL_OPTION_OBSERVE, 1, (uint8_t *)&lifetime);
 
-    if (coap_al_request(&agent->coaper, COAP_AL_MESSAGE_NON,
-            COAP_AL_RESP_CODE(205), (uint8_t *)buf, len) != 0) {
+    if ((msg = coap_al_request(agent->coaper, COAP_AL_MESSAGE_NON,
+            COAP_AL_RESP_CODE(205), (uint8_t *)buf, len)) == NULL) {
         return AGENT_ERR;
     }
-    if (coap_al_send(&agent->coaper) != 0) {
+    if (coap_al_send(agent->coaper, msg) != 0) {
         return AGENT_ERR;
     }
 

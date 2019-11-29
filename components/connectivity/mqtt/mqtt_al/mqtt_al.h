@@ -153,14 +153,14 @@ typedef struct {
 typedef uintptr_t       mqtter_t;
 
 typedef struct {
-    int (*init)         (mqtter_t *mqtter);
-    int (*destroy)      (mqtter_t  mqtter);
-    int (*connect)      (mqtter_t  mqtter, mqtt_al_conn_t *con);
-    int (*disconnect)   (mqtter_t  mqtter);
-    int (*publish)      (mqtter_t  mqtter, mqtt_al_pub_t *pub);
-    int (*subscribe)    (mqtter_t  mqtter, mqtt_al_sub_t *sub);
-    int (*unsubscribe)  (mqtter_t  mqtter, mqtt_al_unsub_t *unsub);
-    int (*checkstatus)  (mqtter_t  mqtter);
+    int (*init)         (uintptr_t *handle);
+    int (*destroy)      (uintptr_t  handle);
+    int (*connect)      (uintptr_t  handle, mqtt_al_conn_t *con);
+    int (*disconnect)   (uintptr_t  handle);
+    int (*publish)      (uintptr_t  handle, mqtt_al_pub_t *pub);
+    int (*subscribe)    (uintptr_t  handle, mqtt_al_sub_t *sub);
+    int (*unsubscribe)  (uintptr_t  handle, mqtt_al_unsub_t *unsub);
+    int (*checkstatus)  (uintptr_t  handle);
 } mqtt_al_ops_t;
 
 int mqtt_al_init(mqtter_t *mqtter);
