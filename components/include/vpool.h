@@ -22,6 +22,22 @@
 extern "C" {
 #endif /* __cplusplus */
 
+#ifndef ISDIGIT
+#define ISDIGIT(c)      ('0' <= (c) && (c) <= '9')
+#endif
+
+#ifndef ISXDIGIT
+#define ISXDIGIT(c)     (((c) - '0' < 10) || (((c) | 0x20) - 'a' < 6))
+#endif
+
+#ifndef ISLOWER
+#define ISLOWER(c)      ('a' <= (c) && (c) <= 'z')
+#endif
+
+#ifndef TOUPPER
+#define TOUPPER(c)      (ISLOWER(c) ? 'A' + ((c) - 'a') : (c))
+#endif
+
 /*
  * offset_of - caculate the offset for a member in a struct
  * @t: the type of the container struct this is embedded in
