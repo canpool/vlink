@@ -20,6 +20,7 @@ CONFIG_OS_TYPE			:= linux
 
 CONFIG_ECDSA256			:= y
 CONFIG_ECDSA256_TYPE    := mbedtls
+CONFIG_ECDSA256_CSR		:= y
 
 include $(ROOT_DIR)/vlink.mk
 

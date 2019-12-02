@@ -175,3 +175,23 @@ TEST_F(TestEcdsa256, curve)
 		print_array(shared_key[i], CONFIG_ECDSA_SHRKEY_LEN);
 	}
 }
+
+#ifdef CONFIG_ECDSA256_CSR_MBEDTLS
+TEST_F(TestEcdsa256, csr)
+{
+	const char *subject_name = "CN=Cert,O=mbed TLS,C=UK";
+	unsigned char public_key[CONFIG_ECDSA_PUBKEY_LEN] = {0};
+	unsigned char private_key[CONFIG_ECDSA_PRIKEY_LEN] = {0};
+	char buf[1024] = {0};
+	unsigned int len = sizeof(buf);
+
+	// note:
+	// CSR generated with "secp256k1" or "secp256r1" can be verified with "prime256v1"
+	// reference to: https://csr.chinassl.net/generator-csr.html
+	vsl_ecdsa_set_curve("secp256r1");
+
+	vsl_ecdsa_gen_keypair(public_key, private_key);
+	vsl_ecdsa_gen_csr(private_key, subject_name, buf, &len);
+	printf("csr is:\n%s\nlen: %u\n", buf, len);
+}
+#endif

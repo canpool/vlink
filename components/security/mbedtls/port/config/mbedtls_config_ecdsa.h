@@ -73,6 +73,48 @@
 #define MBEDTLS_CTR_DRBG_C
 #endif
 
+// csr
+#ifdef CONFIG_ECDSA256_CSR_MBEDTLS
+
+#ifndef MBEDTLS_X509_CSR_WRITE_C
+#define MBEDTLS_X509_CSR_WRITE_C
+#endif
+
+#ifndef MBEDTLS_X509_CREATE_C
+#define MBEDTLS_X509_CREATE_C
+#endif
+
+#ifndef MBEDTLS_OID_C
+#define MBEDTLS_OID_C
+#endif
+
+#ifndef MBEDTLS_PK_WRITE_C
+#define MBEDTLS_PK_WRITE_C
+#endif
+
+#ifndef MBEDTLS_PK_PARSE_C
+#define MBEDTLS_PK_PARSE_C
+#endif
+
+#ifndef MBEDTLS_PK_C
+#define MBEDTLS_PK_C
+#endif
+
+#ifndef MBEDTLS_PEM_WRITE_C
+#define MBEDTLS_PEM_WRITE_C
+#endif
+
+#ifndef MBEDTLS_BASE64_C
+#define MBEDTLS_BASE64_C
+#endif
+
+#ifndef MBEDTLS_MD_C
+#define MBEDTLS_MD_C
+#endif
+
+#endif // CONFIG_ECDSA256_CSR_MBEDTLS
+
+
 #include "mbedtls/check_config.h"
 
 #endif // __MBEDTLS_CONFIG_ECDSA_H__

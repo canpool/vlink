@@ -39,6 +39,16 @@ int vsl_ecdsa_gen_shared(unsigned char private_key[CONFIG_ECDSA_PRIKEY_LEN],
 // default: "secp256k1"
 int vsl_ecdsa_set_curve(const char *name);
 
+#ifdef CONFIG_ECDSA256_CSR_MBEDTLS
+
+#ifndef CONFIG_CSR_DERBUF_LEN
+#define CONFIG_CSR_DERBUF_LEN   2048
+#endif
+
+int vsl_ecdsa_gen_csr(unsigned char private_key[CONFIG_ECDSA_PRIKEY_LEN], const char *subject,
+                      char *buf, unsigned int *iolen);
+#endif
+
 #ifdef __cplusplus
 }
 #endif /* __cplusplus */

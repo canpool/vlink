@@ -403,3 +403,136 @@ int vsl_ecdsa_set_curve(const char *name)
     }
     return 0;
 }
+
+#ifdef CONFIG_ECDSA256_CSR_MBEDTLS
+
+#include "mbedtls/x509_csr.h"
+#include "mbedtls/pem.h"
+#include "mbedtls/pk.h"
+
+typedef struct __vsl_csr_context {
+    mbedtls_pk_context       key;
+    mbedtls_x509write_csr    req;
+} vsl_csr_context;
+
+static vsl_csr_context *s_csr_ctx = NULL;
+
+static int __vsl_csr_destroy(void)
+{
+    if (s_csr_ctx == NULL) {
+        return 0;
+    }
+    mbedtls_x509write_csr_free(&s_csr_ctx->req);
+    mbedtls_platform_zeroize(&s_csr_ctx->key, sizeof(mbedtls_pk_context));
+
+    vos_free(s_csr_ctx);
+    s_csr_ctx = NULL;
+
+    return 0;
+}
+
+static int __vsl_csr_init(void)
+{
+    if (s_csr_ctx != NULL) {
+        return -1;
+    }
+    s_csr_ctx = (vsl_csr_context *)vos_malloc(sizeof(vsl_csr_context));
+    if (s_csr_ctx == NULL) {
+        return -1;
+    }
+
+    mbedtls_x509write_csr_init(&s_csr_ctx->req);
+    mbedtls_pk_init(&s_csr_ctx->key);
+
+    return 0;
+}
+
+#define PEM_BEGIN_CSR           "-----BEGIN CERTIFICATE REQUEST-----\n"
+#define PEM_END_CSR             "-----END CERTIFICATE REQUEST-----\n"
+
+static int __mbedtls_x509write_csr_pem(mbedtls_x509write_csr *ctx, unsigned char *buf, size_t *size,
+                                       int (*f_rng)(void *, unsigned char *, size_t), void *p_rng)
+{
+    int ret;
+    unsigned char *output_buf = NULL;
+    size_t olen = 0;
+
+    output_buf = (unsigned char *)vos_malloc(CONFIG_CSR_DERBUF_LEN);
+    if (output_buf == NULL) {
+        return -1;
+    }
+    memset(output_buf, 0, CONFIG_CSR_DERBUF_LEN);
+
+    if ((ret = mbedtls_x509write_csr_der(ctx, output_buf, CONFIG_CSR_DERBUF_LEN,
+            f_rng, p_rng)) < 0) {
+        vlog_error("mbedtls_x509write_csr_der returned %d", ret);
+        goto exit;
+    }
+
+    if ((ret = mbedtls_pem_write_buffer(PEM_BEGIN_CSR, PEM_END_CSR,
+            output_buf + CONFIG_CSR_DERBUF_LEN - ret, ret, buf, *size, &olen)) != 0) {
+        vlog_error("mbedtls_pem_write_buffer returned %d", ret);
+        goto exit;
+    }
+    *size = olen;
+
+exit:
+    vos_free(output_buf);
+    return ret;
+}
+
+int vsl_ecdsa_gen_csr(unsigned char private_key[CONFIG_ECDSA_PRIKEY_LEN], const char *subject,
+                      char *buf, unsigned int *iolen)
+{
+    int ret = -1;
+
+    if (private_key == NULL || subject == NULL || buf == NULL || iolen == NULL) {
+        vlog_error("illegal input param");
+        return -1;
+    }
+    if (vsl_ecdsa_init() != 0) {
+        vlog_error("vsl_ecdsa_init failed");
+        goto exit;
+    }
+    if (__vsl_csr_init() != 0) {
+        vlog_error("__vsl_csr_init failed");
+        goto exit;
+    }
+    mbedtls_ecp_group_load(&s_ctx->ecdsa.grp, s_curve_id);
+    mbedtls_x509write_csr_set_md_alg(&s_csr_ctx->req, MBEDTLS_MD_SHA256);
+
+    ret = mbedtls_mpi_read_binary(&s_ctx->ecdsa.d, private_key, CONFIG_ECDSA_PRIKEY_LEN);
+    if (ret != 0) {
+        vlog_error("mbedtls_mpi_read_binary returned %d", ret);
+        goto exit;
+    }
+    // generate public key
+    mbedtls_ecp_keypair *eck = &s_ctx->ecdsa;
+    ret = mbedtls_ecp_mul(&eck->grp, &eck->Q, &eck->d, &eck->grp.G,
+            mbedtls_ctr_drbg_random, &s_ctx->ctr_drbg);
+    if (ret != 0) {
+        vlog_error("mbedtls_ecp_mul returned %d", ret);
+        goto exit;
+    }
+    if ((ret = mbedtls_x509write_csr_set_subject_name(&s_csr_ctx->req, subject)) != 0) {
+        vlog_error("mbedtls_x509write_csr_set_subject_name returned %d", ret);
+        goto exit;
+    }
+    s_csr_ctx->key.pk_ctx = &s_ctx->ecdsa;
+    s_csr_ctx->key.pk_info = mbedtls_pk_info_from_type(MBEDTLS_PK_ECKEY);
+    mbedtls_x509write_csr_set_key(&s_csr_ctx->req, &s_csr_ctx->key);
+
+    if ((ret = __mbedtls_x509write_csr_pem(&s_csr_ctx->req, buf, (size_t *)iolen,
+            mbedtls_ctr_drbg_random, &s_ctx->ctr_drbg)) != 0) {
+        vlog_error("__mbedtls_x509write_csr_pem returned %d", ret);
+        goto exit;
+    }
+
+    ret = 0;
+
+exit:
+    vsl_ecdsa_destroy();
+    __vsl_csr_destroy();
+    return (ret ? -1 : 0);
+}
+#endif
