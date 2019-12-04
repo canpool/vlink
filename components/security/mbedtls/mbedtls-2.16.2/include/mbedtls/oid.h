@@ -68,6 +68,7 @@
 #define MBEDTLS_OID_ORG_ANSI_X9_62              "\xce\x3d" /* ansi-X9-62(10045) */
 #define MBEDTLS_OID_ANSI_X9_62                  MBEDTLS_OID_ISO_MEMBER_BODIES MBEDTLS_OID_COUNTRY_US \
                                         MBEDTLS_OID_ORG_ANSI_X9_62
+#define MBEDTLS_OID_COUNTRY_FR                  "\x81\x7a"      /* {fr(250)} */
 
 /*
  * ISO Identified organization OID parts
@@ -81,6 +82,7 @@
 #define MBEDTLS_OID_CERTICOM                    MBEDTLS_OID_ISO_IDENTIFIED_ORG MBEDTLS_OID_ORG_CERTICOM
 #define MBEDTLS_OID_ORG_TELETRUST               "\x24" /* teletrust(36) */
 #define MBEDTLS_OID_TELETRUST                   MBEDTLS_OID_ISO_IDENTIFIED_ORG MBEDTLS_OID_ORG_TELETRUST
+#define MBEDTLS_OID_TYPE_ORG                    "\x01" /* type-org(1) */
 
 /*
  * ISO ITU OID parts
@@ -356,6 +358,21 @@
 
 /* brainpoolP512r1 OBJECT IDENTIFIER ::= {versionOne 13} */
 #define MBEDTLS_OID_EC_GRP_BP512R1          MBEDTLS_OID_EC_BRAINPOOL_V1 "\x0D"
+
+/*
+ * ANSSI
+ */
+/* iso(1) member-body(2) fr(250) type-org(1) anssi(223) */
+#define MBEDTLS_OID_ORG_ANSSI               MBEDTLS_OID_ISO_MEMBER_BODIES MBEDTLS_OID_COUNTRY_FR \
+                                        MBEDTLS_OID_TYPE_ORG "\x81\x5f"
+
+/* FRP256V1 OBJECT IDENTIFIER ::= {
+ *   iso(1) member-body(2) fr(250) type-org(1) anssi(223) 101 256 1 }
+ *
+ * 1.2.250.1.223.101.256.1
+ * /ISO/Member-Body/FR/1/223/101/256/1
+ */
+#define MBEDTLS_OID_EC_GRP_FRP256V1         MBEDTLS_OID_ORG_ANSSI "\x65\x82\x00\x01"
 
 /*
  * SEC1 C.1

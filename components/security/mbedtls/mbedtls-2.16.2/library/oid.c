@@ -524,6 +524,12 @@ static const oid_ecp_grp_t oid_ecp_grp[] =
         MBEDTLS_ECP_DP_BP512R1,
     },
 #endif /* MBEDTLS_ECP_DP_BP512R1_ENABLED */
+#if defined(MBEDTLS_ECP_DP_FRP256V1_ENABLED)
+    {
+        { ADD_LEN( MBEDTLS_OID_EC_GRP_FRP256V1 ),   "FRP256V1",    "FRP256V1" },
+        MBEDTLS_ECP_DP_FRP256V1,
+    },
+#endif /* MBEDTLS_ECP_DP_FRP256V1_ENABLED */
     {
         { NULL, 0, NULL, NULL },
         MBEDTLS_ECP_DP_NONE,
