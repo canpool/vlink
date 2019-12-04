@@ -16,6 +16,8 @@
 #ifndef __VSL_ECDSA256_H__ /* base sha256 */
 #define __VSL_ECDSA256_H__
 
+#include "vsl.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif /* __cplusplus */
@@ -24,6 +26,19 @@ extern "C" {
 #define CONFIG_ECDSA_PRIKEY_LEN 32 /* private key */
 #define CONFIG_ECDSA_SIG_LEN    64 /* raw signature (r+s), not encoded by ANS.1 */
 #define CONFIG_ECDSA_SHRKEY_LEN 64 /* shared key (X+Y) */
+
+#define CONFIG_CURVE_POINT_LEN  32
+
+#ifndef CONFIG_CURVE_NAME_LEN
+#define CONFIG_CURVE_NAME_LEN   20
+#endif
+
+#define VSL_SECP256R1_NAME  "secp256r1"
+#define VSL_PRIME256V1_NAME "prime256v1"
+#define VSL_SECP256K1_NAME  "secp256k1"
+#define VSL_BP256R1_NAME    "brainpoolP256r1"
+#define VSL_FRP256V1_NAME   "FRP256V1"
+
 
 int vsl_ecdsa_gen_keypair(unsigned char public_key[CONFIG_ECDSA_PUBKEY_LEN],
                       unsigned char private_key[CONFIG_ECDSA_PRIKEY_LEN]);
@@ -35,9 +50,21 @@ int vsl_ecdsa_gen_shared(unsigned char private_key[CONFIG_ECDSA_PRIKEY_LEN],
                          unsigned char peer_public_key[CONFIG_ECDSA_PUBKEY_LEN],
                          unsigned char shared_key[CONFIG_ECDSA_SHRKEY_LEN]);
 
-// support: "secp256r1", "secp256k1", "brainpoolP256r1"
+// support: "secp256r1"="prime256v1", "secp256k1", "brainpoolP256r1", "FRP256V1"
 // default: "secp256k1"
 int vsl_ecdsa_set_curve(const char *name);
+
+typedef struct __vsl_curve_point {
+    unsigned char  p[CONFIG_CURVE_POINT_LEN];
+    unsigned char  a[CONFIG_CURVE_POINT_LEN];
+    unsigned char  b[CONFIG_CURVE_POINT_LEN];
+    unsigned char gx[CONFIG_CURVE_POINT_LEN];
+    unsigned char gy[CONFIG_CURVE_POINT_LEN];
+    unsigned char  n[CONFIG_CURVE_POINT_LEN];
+} vsl_curve_point;
+
+int vsl_ecdsa_get_curve(char *name, unsigned int nlen, vsl_curve_point *points);
+int vsl_ecdsa_def_curve(const char *name, vsl_curve_point *points);
 
 #ifdef CONFIG_ECDSA256_CSR_MBEDTLS
 

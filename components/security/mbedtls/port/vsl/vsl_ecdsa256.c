@@ -40,6 +40,12 @@
 
 #include <string.h>
 
+#if defined(MBEDTLS_HAVE_INT32)
+#define MBEDTLS_CURVE_POINT_LEN     8
+#else
+#define MBEDTLS_CURVE_POINT_LEN     4
+#endif
+
 
 typedef struct __vsl_ecdsa256_context {
     mbedtls_ecdsa_context    ecdsa;
@@ -49,6 +55,144 @@ typedef struct __vsl_ecdsa256_context {
 
 static vsl_ecdsa256_context *s_ctx = NULL;
 static int s_curve_id = MBEDTLS_ECP_DP_SECP256K1;
+static char s_curve_name[CONFIG_CURVE_NAME_LEN] = VSL_SECP256K1_NAME;
+static char s_custom_flag = 0;
+
+
+static mbedtls_mpi_uint  s_p[MBEDTLS_CURVE_POINT_LEN] = {0};
+static mbedtls_mpi_uint  s_a[MBEDTLS_CURVE_POINT_LEN] = {0};
+static mbedtls_mpi_uint  s_b[MBEDTLS_CURVE_POINT_LEN] = {0};
+static mbedtls_mpi_uint s_gx[MBEDTLS_CURVE_POINT_LEN] = {0};
+static mbedtls_mpi_uint s_gy[MBEDTLS_CURVE_POINT_LEN] = {0};
+static mbedtls_mpi_uint  s_n[MBEDTLS_CURVE_POINT_LEN] = {0};
+
+/*
+ * Create an MPI from embedded constants
+ * (assumes len is an exact multiple of sizeof mbedtls_mpi_uint)
+ */
+static inline void __ecp_mpi_load( mbedtls_mpi *X, const mbedtls_mpi_uint *p, size_t len )
+{
+    X->s = 1;
+    X->n = len / sizeof( mbedtls_mpi_uint );
+    X->p = (mbedtls_mpi_uint *) p;
+}
+
+/*
+ * Set an MPI to static value 1
+ */
+static inline void __ecp_mpi_set1( mbedtls_mpi *X )
+{
+    static mbedtls_mpi_uint one[] = { 1 };
+    X->s = 1;
+    X->n = 1;
+    X->p = one;
+}
+
+static void __bytes_to_mpi_uint(const unsigned char *b, int b_cnt,
+    mbedtls_mpi_uint *m, int m_cnt)
+{
+    int i, j, k;
+#if defined(MBEDTLS_HAVE_INT32)
+    int blk = 4;
+#else
+    int blk = 8;
+#endif
+
+    memset(m, 0, m_cnt);
+
+    for (i = 0; i < m_cnt; ++i) {
+        for (j = b_cnt - 1 - (i * blk), k = 0; j >= (b_cnt - blk - (i * blk)); --j, ++k) {
+            m[i] |= ((mbedtls_mpi_uint)b[j] << (k << 3));
+        }
+    }
+}
+
+static void __mpi_uint_to_bytes(const mbedtls_mpi_uint *m, int m_cnt,
+    unsigned char *b, int b_cnt)
+{
+    int i, j, k;
+#if defined(MBEDTLS_HAVE_INT32)
+    int blk = 4;
+#else
+    int blk = 8;
+#endif
+
+    memset(b, 0, b_cnt);
+
+    for (i = 0; i < m_cnt; ++i) {
+        for (j = b_cnt - 1 - (i * blk), k = 0; j >= (b_cnt - blk - (i * blk)); --j, ++k) {
+            b[j] = (unsigned char)(m[i] >> (k << 3));
+        }
+    }
+}
+
+static void __export_curve_points(vsl_curve_point *points)
+{
+    __mpi_uint_to_bytes(s_p,  MBEDTLS_CURVE_POINT_LEN, points->p,  CONFIG_CURVE_POINT_LEN);
+    __mpi_uint_to_bytes(s_a,  MBEDTLS_CURVE_POINT_LEN, points->a,  CONFIG_CURVE_POINT_LEN);
+    __mpi_uint_to_bytes(s_b,  MBEDTLS_CURVE_POINT_LEN, points->b,  CONFIG_CURVE_POINT_LEN);
+    __mpi_uint_to_bytes(s_gx, MBEDTLS_CURVE_POINT_LEN, points->gx, CONFIG_CURVE_POINT_LEN);
+    __mpi_uint_to_bytes(s_gy, MBEDTLS_CURVE_POINT_LEN, points->gy, CONFIG_CURVE_POINT_LEN);
+    __mpi_uint_to_bytes(s_n,  MBEDTLS_CURVE_POINT_LEN, points->n,  CONFIG_CURVE_POINT_LEN);
+}
+
+static void __import_curve_points(vsl_curve_point *points)
+{
+    __bytes_to_mpi_uint(points->p,  CONFIG_CURVE_POINT_LEN, s_p,  MBEDTLS_CURVE_POINT_LEN);
+    __bytes_to_mpi_uint(points->a,  CONFIG_CURVE_POINT_LEN, s_a,  MBEDTLS_CURVE_POINT_LEN);
+    __bytes_to_mpi_uint(points->b,  CONFIG_CURVE_POINT_LEN, s_b,  MBEDTLS_CURVE_POINT_LEN);
+    __bytes_to_mpi_uint(points->gx, CONFIG_CURVE_POINT_LEN, s_gx, MBEDTLS_CURVE_POINT_LEN);
+    __bytes_to_mpi_uint(points->gy, CONFIG_CURVE_POINT_LEN, s_gy, MBEDTLS_CURVE_POINT_LEN);
+    __bytes_to_mpi_uint(points->n,  CONFIG_CURVE_POINT_LEN, s_n,  MBEDTLS_CURVE_POINT_LEN);
+}
+
+#define __EXPORT_GROUP(d, s, l) \
+    if (s) { \
+        memcpy(d, s, l); \
+    } else { \
+        memset(d, 0, l); \
+    }
+
+static void __export_ecp_group(mbedtls_ecp_group *grp)
+{
+    __EXPORT_GROUP(s_p,  grp->P.p,   sizeof(s_p));
+    __EXPORT_GROUP(s_a,  grp->A.p,   sizeof(s_a));
+    __EXPORT_GROUP(s_b,  grp->B.p,   sizeof(s_b));
+    __EXPORT_GROUP(s_gx, grp->G.X.p, sizeof(s_gx));
+    __EXPORT_GROUP(s_gy, grp->G.Y.p, sizeof(s_gy));
+    __EXPORT_GROUP(s_n,  grp->N.p,   sizeof(s_n));
+}
+
+static int __ecp_group_load(mbedtls_ecp_group *grp)
+{
+    __ecp_mpi_load( &grp->P, s_p, sizeof(s_p) );
+    __ecp_mpi_load( &grp->A, s_a, sizeof(s_a) );
+    __ecp_mpi_load( &grp->B, s_b, sizeof(s_b) );
+    __ecp_mpi_load( &grp->N, s_n, sizeof(s_n) );
+
+    __ecp_mpi_load( &grp->G.X, s_gx, sizeof(s_gx) );
+    __ecp_mpi_load( &grp->G.Y, s_gy, sizeof(s_gy) );
+    __ecp_mpi_set1( &grp->G.Z );
+
+    grp->pbits = mbedtls_mpi_bitlen( &grp->P );
+    grp->nbits = mbedtls_mpi_bitlen( &grp->N );
+
+    grp->h = 1;
+
+    return( 0 );
+}
+
+static int __mbedtls_ecp_group_load(mbedtls_ecp_group *grp, int id)
+{
+    if (s_custom_flag) {
+        mbedtls_ecp_group_free(grp);
+        grp->id = id;
+        __ecp_group_load(grp);
+    } else {
+        return mbedtls_ecp_group_load(grp, id);
+    }
+    return 0;
+}
 
 int vsl_ecdsa_destroy(void)
 {
@@ -94,6 +238,19 @@ exit:
     return -1;
 }
 
+static int __mbedtls_ecdsa_genkey( mbedtls_ecdsa_context *ctx, mbedtls_ecp_group_id gid,
+                  int (*f_rng)(void *, unsigned char *, size_t), void *p_rng )
+{
+    int ret = 0;
+
+    ret = __mbedtls_ecp_group_load( &ctx->grp, gid );
+    if( ret != 0 )
+        return( ret );
+
+   return( mbedtls_ecp_gen_keypair( &ctx->grp, &ctx->d,
+                                    &ctx->Q, f_rng, p_rng ) );
+}
+
 int vsl_ecdsa_gen_keypair(unsigned char public_key[CONFIG_ECDSA_PUBKEY_LEN],
                       unsigned char private_key[CONFIG_ECDSA_PRIKEY_LEN])
 {
@@ -110,9 +267,9 @@ int vsl_ecdsa_gen_keypair(unsigned char public_key[CONFIG_ECDSA_PUBKEY_LEN],
         goto exit;
     }
 
-    if ((ret = mbedtls_ecdsa_genkey(&s_ctx->ecdsa, s_curve_id, mbedtls_ctr_drbg_random,
+    if ((ret = __mbedtls_ecdsa_genkey(&s_ctx->ecdsa, s_curve_id, mbedtls_ctr_drbg_random,
                                     &s_ctx->ctr_drbg)) != 0) {
-        vlog_error("mbedtls_ecdsa_genkey returned %d", ret);
+        vlog_error("__mbedtls_ecdsa_genkey returned %d", ret);
         goto exit;
     }
 
@@ -228,7 +385,7 @@ int vsl_ecdsa_sign(unsigned char private_key[CONFIG_ECDSA_PRIKEY_LEN], unsigned 
         vlog_error("vsl_ecdsa_init failed");
         goto exit;
     }
-    mbedtls_ecp_group_load(&s_ctx->ecdsa.grp, s_curve_id);
+    __mbedtls_ecp_group_load(&s_ctx->ecdsa.grp, s_curve_id);
 
     if ((ret = mbedtls_sha256_ret(data, data_len, hash, 0)) != 0) {
         vlog_error("mbedtls_sha256_ret returned %d", ret);
@@ -268,7 +425,7 @@ int vsl_ecdsa_verify(unsigned char peer_public_key[CONFIG_ECDSA_PUBKEY_LEN], uns
         vlog_error("vsl_ecdsa_init failed");
         goto exit;
     }
-    mbedtls_ecp_group_load(&s_ctx->ecdsa.grp, s_curve_id);
+    __mbedtls_ecp_group_load(&s_ctx->ecdsa.grp, s_curve_id);
 
     ret = mbedtls_mpi_lset(&s_ctx->ecdsa.Q.Z, 1);
     if (ret != 0) {
@@ -346,7 +503,7 @@ int vsl_ecdsa_gen_shared(unsigned char private_key[CONFIG_ECDSA_PRIKEY_LEN],
         vlog_error("vsl_ecdsa_init failed");
         goto exit;
     }
-    mbedtls_ecp_group_load(&s_ctx->ecdsa.grp, s_curve_id);
+    __mbedtls_ecp_group_load(&s_ctx->ecdsa.grp, s_curve_id);
 
     ret = mbedtls_mpi_lset(&s_ctx->ecdsa.Q.Z, 1);
     if (ret != 0) {
@@ -385,22 +542,73 @@ exit:
     return (ret ? -1 : 0);
 }
 
-
 int vsl_ecdsa_set_curve(const char *name)
 {
     if (name == NULL) {
         return -1;
     }
-
-    if (strcmp(name, "secp256r1") == 0) {
-        s_curve_id = MBEDTLS_ECP_DP_SECP256R1;
-    } else if (strcmp(name, "secp256k1") == 0) {
-        s_curve_id = MBEDTLS_ECP_DP_SECP256K1;
-    } else if (strcmp(name, "brainpoolP256r1") == 0) {
-        s_curve_id = MBEDTLS_ECP_DP_BP256R1;
-    } else {
+    unsigned int nlen = strlen(name);
+    if (nlen >= CONFIG_CURVE_NAME_LEN) {
+        vlog_error("name is too long");
         return -1;
     }
+
+    if (strcmp(name, VSL_SECP256R1_NAME) == 0 ||
+        strcmp(name, VSL_PRIME256V1_NAME) == 0) {
+        s_curve_id = MBEDTLS_ECP_DP_SECP256R1;
+    } else if (strcmp(name, VSL_SECP256K1_NAME) == 0) {
+        s_curve_id = MBEDTLS_ECP_DP_SECP256K1;
+    } else if (strcmp(name, VSL_BP256R1_NAME) == 0) {
+        s_curve_id = MBEDTLS_ECP_DP_BP256R1;
+    } else if (strcmp(name, VSL_FRP256V1_NAME) == 0) {
+        s_curve_id = MBEDTLS_ECP_DP_FRP256V1;
+    } else {
+        vlog_error("invalid name \"%s\"", name);
+        return -1;
+    }
+    strcpy(s_curve_name, name);
+    s_curve_name[nlen] = '\0';
+    s_custom_flag = 0;
+
+    return 0;
+}
+
+int vsl_ecdsa_get_curve(char *name, unsigned int nlen, vsl_curve_point *points)
+{
+    if (name == NULL || points == NULL) {
+        return -1;
+    }
+
+    unsigned int name_len = strlen(s_curve_name);
+    if (name_len == 0 || name_len >= nlen) {
+        vlog_error("current name len: %u, nlen: %u", name_len, nlen);
+        return -1;
+    }
+    mbedtls_ecp_group grp;
+    mbedtls_ecp_group_init(&grp);
+
+    if (__mbedtls_ecp_group_load(&grp, s_curve_id) != 0) {
+        return -1;
+    }
+    __export_curve_points(points);
+    strcpy(name, s_curve_name);
+
+    mbedtls_ecp_group_free(&grp);
+
+    return 0;
+}
+
+int vsl_ecdsa_def_curve(const char *name, vsl_curve_point *points)
+{
+    if (name == NULL || points == NULL) {
+        return -1;
+    }
+    if (vsl_ecdsa_set_curve(name) != 0) {
+        return -1;
+    }
+    __import_curve_points(points);
+    s_custom_flag = 1;
+
     return 0;
 }
 
@@ -498,7 +706,7 @@ int vsl_ecdsa_gen_csr(unsigned char private_key[CONFIG_ECDSA_PRIKEY_LEN], const 
         vlog_error("__vsl_csr_init failed");
         goto exit;
     }
-    mbedtls_ecp_group_load(&s_ctx->ecdsa.grp, s_curve_id);
+    __mbedtls_ecp_group_load(&s_ctx->ecdsa.grp, s_curve_id);
     mbedtls_x509write_csr_set_md_alg(&s_csr_ctx->req, MBEDTLS_MD_SHA256);
 
     ret = mbedtls_mpi_read_binary(&s_ctx->ecdsa.d, private_key, CONFIG_ECDSA_PRIKEY_LEN);
