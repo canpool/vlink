@@ -17,6 +17,7 @@
 #define __VLOG_H__
 
 #include <stdio.h>
+#include <stdint.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -51,6 +52,8 @@ const char *vlog_get_name(vlog_e level);
             __FILE__, __LINE__, ##__VA_ARGS__); \
         } \
     } while (0)
+
+extern uint64_t vos_sys_time(void);
 
 #define vlog_print(format, ...) \
     vprintf("[%llu][%s:%d] " format "\r\n", (unsigned long long)vos_sys_time(), \

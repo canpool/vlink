@@ -12,12 +12,12 @@
  *
  * Contributors:
  *    Bosch Software Innovations GmbH - Please refer to git log
- *    
+ *
  *******************************************************************************/
 
 /*
  * This connectivity statistics object is optional and single instance only
- * 
+ *
  *  Resources:
  *
  *          Name         | ID | Oper. | Inst. | Mand.|  Type   | Range | Units | Description |
@@ -30,7 +30,7 @@
  *  StartOrReset         |  6 |   E   | Single|  Yes | Integer |       |       |             |
  */
 
-#include "internals.h"
+#include "object_comm.h"
 
 // Resource Id's:
 #define RES_O_SMS_TX_COUNTER            0
@@ -188,7 +188,6 @@ void conn_s_updateRxStatistic(lwm2m_object_t * objectP, uint16_t rxDataByte, boo
     }
 }
 
-
 lwm2m_object_t * get_object_conn_s(void)
 {
     /*
@@ -252,4 +251,77 @@ void free_object_conn_s(lwm2m_object_t * objectP)
     lwm2m_free(objectP->userData);
     lwm2m_list_free(objectP->instanceList);
     lwm2m_free(objectP);
+}
+
+static lwm2m_object_t * lwm2m_get_conn_s_object(void)
+{
+    lwm2m_object_t *connObj;
+
+    connObj = (lwm2m_object_t *)lwm2m_malloc(sizeof(lwm2m_object_t));
+    if (connObj == NULL) {
+        return NULL;
+    }
+    memset(connObj, 0, sizeof(lwm2m_object_t));
+    connObj->objID = LWM2M_CONN_STATS_OBJECT_ID;
+
+    connObj->readFunc     = prv_read;
+    connObj->executeFunc  = prv_exec;
+
+    return connObj;
+}
+
+static int lwm2m_add_conn_s_instance(lwm2m_object_t *obj, lwm2m_al_uri_t *uri, uintptr_t obj_data)
+{
+    int ret = LWM2M_ERRNO_OK;
+
+    lwm2m_list_t * targetP;
+
+    targetP = (lwm2m_list_t *)lwm2m_malloc(sizeof(lwm2m_list_t));
+    if (targetP == NULL) {
+        return LWM2M_ERRNO_NOMEM;
+    }
+    memset(targetP, 0, sizeof(lwm2m_list_t));
+
+    targetP->id = uri->obj_id;
+
+    obj->instanceList = LWM2M_LIST_ADD(obj->instanceList, targetP);
+
+    return ret;
+}
+
+int lwm2m_add_conn_s_object(lwm2m_context_t *ctx, lwm2m_al_uri_t *uri, uintptr_t obj_data)
+{
+    int ret = LWM2M_ERRNO_OK;
+    bool is_new = false;
+
+    lwm2m_object_t * obj = (lwm2m_object_t *)LWM2M_LIST_FIND(ctx->objectList, uri->obj_id);
+    if (obj == NULL) {
+        obj = lwm2m_get_conn_s_object();
+        if (obj == NULL) {
+            return LWM2M_ERRNO_NOMEM;
+        }
+        is_new = true;
+    }
+
+    lwm2m_list_t *inst = LWM2M_LIST_FIND(obj->instanceList, uri->inst_id);
+    if (inst == NULL) {
+        // single instance
+        if (obj->instanceList != NULL || uri->inst_id != 0) {
+            return LWM2M_ERRNO_PERM;
+        }
+        ret = lwm2m_add_conn_s_instance(obj, uri, obj_data);
+        if (ret != LWM2M_ERRNO_OK) {
+            if (is_new) {
+                lwm2m_free(obj);
+            }
+            return ret;
+        }
+    }
+    // ignore resources
+
+    if (is_new) {
+        lwm2m_add_object(ctx, obj);
+    }
+
+    return ret;
 }

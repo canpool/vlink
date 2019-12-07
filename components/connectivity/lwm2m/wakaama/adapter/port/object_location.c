@@ -44,7 +44,6 @@
  *              |     |      |         |     |         |       |       | for direction: the scalar component of velocity.                                 |
  */
 
-#include "internals.h"
 #include "object_comm.h"
 
 #ifdef LWM2M_CLIENT_MODE
@@ -278,5 +277,78 @@ void free_object_location(lwm2m_object_t * object)
     lwm2m_free(object->userData);
     lwm2m_free(object);
 }
+
+static lwm2m_object_t * lwm2m_get_location_object(void)
+{
+    lwm2m_object_t * locationObj;
+
+    locationObj = (lwm2m_object_t *)lwm2m_malloc(sizeof(lwm2m_object_t));
+    if (locationObj == NULL) {
+        return NULL;
+    }
+    memset(locationObj, 0, sizeof(lwm2m_object_t));
+    locationObj->objID = LWM2M_LOCATION_OBJECT_ID;
+
+    locationObj->readFunc    = prv_location_read;
+
+    return locationObj;
+}
+
+static int lwm2m_add_location_instance(lwm2m_object_t *obj, lwm2m_al_uri_t *uri, uintptr_t obj_data)
+{
+    int ret = LWM2M_ERRNO_OK;
+
+    lwm2m_list_t * locationInstance;
+
+    locationInstance = (lwm2m_list_t *)lwm2m_malloc(sizeof(lwm2m_list_t));
+    if (locationInstance == NULL) {
+        return LWM2M_ERRNO_NOMEM;
+    }
+    memset(locationInstance, 0, sizeof(lwm2m_list_t));
+
+    locationInstance->id = uri->obj_id;
+
+    obj->instanceList = LWM2M_LIST_ADD(obj->instanceList, locationInstance);
+
+    return ret;
+}
+
+int lwm2m_add_location_object(lwm2m_context_t *ctx, lwm2m_al_uri_t *uri, uintptr_t obj_data)
+{
+    int ret = LWM2M_ERRNO_OK;
+    bool is_new = false;
+
+    lwm2m_object_t * obj = (lwm2m_object_t *)LWM2M_LIST_FIND(ctx->objectList, uri->obj_id);
+    if (obj == NULL) {
+        obj = lwm2m_get_location_object();
+        if (obj == NULL) {
+            return LWM2M_ERRNO_NOMEM;
+        }
+        is_new = true;
+    }
+
+    lwm2m_list_t *inst = LWM2M_LIST_FIND(obj->instanceList, uri->inst_id);
+    if (inst == NULL) {
+        // single instance
+        if (obj->instanceList != NULL || uri->inst_id != 0) {
+            return LWM2M_ERRNO_PERM;
+        }
+        ret = lwm2m_add_location_instance(obj, uri, obj_data);
+        if (ret != LWM2M_ERRNO_OK) {
+            if (is_new) {
+                lwm2m_free(obj);
+            }
+            return ret;
+        }
+    }
+    // ignore resources
+
+    if (is_new) {
+        lwm2m_add_object(ctx, obj);
+    }
+
+    return ret;
+}
+
 
 #endif  //LWM2M_CLIENT_MODE

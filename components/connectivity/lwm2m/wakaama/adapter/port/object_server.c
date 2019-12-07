@@ -1115,3 +1115,94 @@ void free_server_object(lwm2m_object_t * object)
     clean_server_object(object);
     lwm2m_free(object);
 }
+
+static lwm2m_object_t * lwm2m_get_server_object(void)
+{
+    lwm2m_object_t * serverObj;
+
+    serverObj = (lwm2m_object_t *)lwm2m_malloc(sizeof(lwm2m_object_t));
+    if (serverObj == NULL) {
+        return NULL;
+    }
+    memset(serverObj, 0, sizeof(lwm2m_object_t));
+    serverObj->objID = LWM2M_SERVER_OBJECT_ID;
+
+    serverObj->readFunc = prv_server_read;
+    serverObj->discoverFunc = prv_server_discover;
+    serverObj->writeFunc = prv_server_write;
+    serverObj->createFunc = prv_server_create;
+    serverObj->deleteFunc = prv_server_delete;
+    serverObj->executeFunc = prv_server_execute;
+
+    return serverObj;
+}
+
+static int lwm2m_add_server_instance(lwm2m_object_t *obj, lwm2m_al_uri_t *uri, uintptr_t obj_data)
+{
+    int ret = LWM2M_ERRNO_OK;
+
+    lwm2m_al_server_data_t *dataP = (lwm2m_al_server_data_t *)obj_data;
+    if (dataP == NULL || dataP->binding == NULL) {
+        return LWM2M_ERRNO_INVAL;
+    }
+
+    server_instance_t * serverInstance;
+
+    // Manually create an hardcoded server
+    serverInstance = (server_instance_t *)lwm2m_malloc(sizeof(server_instance_t));
+    if (serverInstance == NULL) {
+        return LWM2M_ERRNO_NOMEM;
+    }
+    memset(serverInstance, 0, sizeof(server_instance_t));
+    serverInstance->instanceId = uri->inst_id;
+    serverInstance->shortServerId = dataP->shortServerId;
+    serverInstance->lifetime = dataP->lifetime;
+    serverInstance->storing = dataP->storing;
+    memcpy (serverInstance->binding, dataP->binding, strlen(dataP->binding)+1);
+#ifndef LWM2M_VERSION_1_0
+    serverInstance->registrationPriorityOrder = -1;
+    serverInstance->initialRegistrationDelayTimer = -1;
+    serverInstance->registrationFailureBlock = -1;
+    serverInstance->bootstrapOnRegistrationFailure = -1;
+    serverInstance->communicationRetryCount = -1;
+    serverInstance->communicationRetryTimer = -1;
+    serverInstance->communicationSequenceDelayTimer = -1;
+    serverInstance->communicationSequenceRetryCount = -1;
+#endif
+    obj->instanceList = LWM2M_LIST_ADD(obj->instanceList, serverInstance);
+
+    return ret;
+}
+
+int lwm2m_add_server_object(lwm2m_context_t *ctx, lwm2m_al_uri_t *uri, uintptr_t obj_data)
+{
+    int ret = LWM2M_ERRNO_OK;
+    bool is_new = false;
+
+    lwm2m_object_t * obj = (lwm2m_object_t *)LWM2M_LIST_FIND(ctx->objectList, uri->obj_id);
+    if (obj == NULL) {
+        obj = lwm2m_get_server_object();
+        if (obj == NULL) {
+            return LWM2M_ERRNO_NOMEM;
+        }
+        is_new = true;
+    }
+
+    lwm2m_list_t *inst = LWM2M_LIST_FIND(obj->instanceList, uri->inst_id);
+    if (inst == NULL) {
+        ret = lwm2m_add_server_instance(obj, uri, obj_data);
+        if (ret != LWM2M_ERRNO_OK) {
+            if (is_new) {
+                lwm2m_free(obj);
+            }
+            return ret;
+        }
+    }
+    // ignore resources
+
+    if (is_new) {
+        lwm2m_add_object(ctx, obj);
+    }
+
+    return ret;
+}

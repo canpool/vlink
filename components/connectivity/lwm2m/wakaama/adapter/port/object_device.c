@@ -69,7 +69,6 @@
  * manufacturer, model, etc...
  */
 
-#include "internals.h"
 #include "object_comm.h"
 
 
@@ -640,4 +639,80 @@ void free_object_device(lwm2m_object_t * objectP)
     }
 
     lwm2m_free(objectP);
+}
+
+static lwm2m_object_t * lwm2m_get_device_object(void)
+{
+    lwm2m_object_t * deviceObj;
+
+    deviceObj = (lwm2m_object_t *)lwm2m_malloc(sizeof(lwm2m_object_t));
+    if (deviceObj == NULL) {
+        return NULL;
+    }
+
+    memset(deviceObj, 0, sizeof(lwm2m_object_t));
+    deviceObj->objID = LWM2M_DEVICE_OBJECT_ID;
+
+    deviceObj->readFunc     = prv_device_read;
+    deviceObj->discoverFunc = prv_device_discover;
+    deviceObj->writeFunc    = prv_device_write;
+    deviceObj->executeFunc  = prv_device_execute;
+
+    return deviceObj;
+}
+
+static int lwm2m_add_device_instance(lwm2m_object_t *obj, lwm2m_al_uri_t *uri, uintptr_t obj_data)
+{
+    int ret = LWM2M_ERRNO_OK;
+
+    lwm2m_list_t * deviceInstance;
+
+    deviceInstance = (lwm2m_list_t *)lwm2m_malloc(sizeof(lwm2m_list_t));
+    if (deviceInstance == NULL) {
+        return LWM2M_ERRNO_NOMEM;
+    }
+    memset(deviceInstance, 0, sizeof(lwm2m_list_t));
+
+    deviceInstance->id = uri->obj_id;
+
+    obj->instanceList = LWM2M_LIST_ADD(obj->instanceList, deviceInstance);
+
+    return ret;
+}
+
+int lwm2m_add_device_object(lwm2m_context_t *ctx, lwm2m_al_uri_t *uri, uintptr_t obj_data)
+{
+    int ret = LWM2M_ERRNO_OK;
+    bool is_new = false;
+
+    lwm2m_object_t * obj = (lwm2m_object_t *)LWM2M_LIST_FIND(ctx->objectList, uri->obj_id);
+    if (obj == NULL) {
+        obj = lwm2m_get_device_object();
+        if (obj == NULL) {
+            return LWM2M_ERRNO_NOMEM;
+        }
+        is_new = true;
+    }
+
+    lwm2m_list_t *inst = LWM2M_LIST_FIND(obj->instanceList, uri->inst_id);
+    if (inst == NULL) {
+        // single instance
+        if (obj->instanceList != NULL || uri->inst_id != 0) {
+            return LWM2M_ERRNO_PERM;
+        }
+        ret = lwm2m_add_device_instance(obj, uri, obj_data);
+        if (ret != LWM2M_ERRNO_OK) {
+            if (is_new) {
+                lwm2m_free(obj);
+            }
+            return ret;
+        }
+    }
+    // ignore resources
+
+    if (is_new) {
+        lwm2m_add_object(ctx, obj);
+    }
+
+    return ret;
 }

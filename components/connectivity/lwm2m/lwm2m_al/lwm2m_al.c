@@ -76,6 +76,73 @@ int lwm2m_al_destroy(lwm2mer_t m2m)
     return 0;
 }
 
+int lwm2m_al_add_object(lwm2mer_t m2m, lwm2m_al_uri_t *uri, uintptr_t obj_data)
+{
+    lwm2m_al_context_t *al_ctx = (lwm2m_al_context_t *)(m2m);
+
+    if (!magic_verify(al_ctx)) {
+        return -1;
+    }
+    if (uri == NULL) {
+        return -1;
+    }
+    if (s_lwm2m_al.ops == NULL || s_lwm2m_al.ops->add_object == NULL) {
+        return -1;
+    }
+    if (s_lwm2m_al.ops->add_object(al_ctx->handle, uri, obj_data) != 0) {
+        return -1;
+    }
+    return 0;
+}
+
+int lwm2m_al_rm_object(lwm2mer_t m2m, uint16_t obj_id)
+{
+    lwm2m_al_context_t *al_ctx = (lwm2m_al_context_t *)(m2m);
+
+    if (!magic_verify(al_ctx)) {
+        return -1;
+    }
+    if (s_lwm2m_al.ops == NULL || s_lwm2m_al.ops->rm_object == NULL) {
+        return -1;
+    }
+    if (s_lwm2m_al.ops->rm_object(al_ctx->handle, obj_id) != 0) {
+        return -1;
+    }
+    return 0;
+}
+
+int lwm2m_al_connect(lwm2mer_t m2m)
+{
+    lwm2m_al_context_t *al_ctx = (lwm2m_al_context_t *)(m2m);
+
+    if (!magic_verify(al_ctx)) {
+        return -1;
+    }
+    if (s_lwm2m_al.ops == NULL || s_lwm2m_al.ops->connect == NULL) {
+        return -1;
+    }
+    if (s_lwm2m_al.ops->connect(al_ctx->handle) != 0) {
+        return -1;
+    }
+    return 0;
+}
+
+int lwm2m_al_disconnect(lwm2mer_t m2m)
+{
+    lwm2m_al_context_t *al_ctx = (lwm2m_al_context_t *)(m2m);
+
+    if (!magic_verify(al_ctx)) {
+        return -1;
+    }
+    if (s_lwm2m_al.ops == NULL || s_lwm2m_al.ops->disconnect == NULL) {
+        return -1;
+    }
+    if (s_lwm2m_al.ops->disconnect(al_ctx->handle) != 0) {
+        return -1;
+    }
+    return 0;
+}
+
 int lwm2m_al_send(lwm2mer_t m2m, const char *uri, const char *msg, int len, uint32_t timeout)
 {
     lwm2m_al_context_t *al_ctx = (lwm2m_al_context_t *)(m2m);

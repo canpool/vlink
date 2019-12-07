@@ -16,6 +16,8 @@
 #include "lwm2m_port.h"
 #include "object_comm.h"
 
+#include <stdarg.h>
+
 #include "vos.h"
 #include "vmisc.h"
 
@@ -262,30 +264,6 @@ int lwm2m_cmd_get_link_utilization(int *utilization)
     return LWM2M_ERRNO_OK;
 }
 
-#include "oc_lwm2m.h"
-extern int lwm2m_agent_receive(oc_lwm2m_msg_e type, char *msg, int len);
-
-int lwm2m_cmd_app_write(void *user_data, int len)
-{
-    (void)printf("write num19 object success\r\n");
-    lwm2m_agent_receive(OC_LWM2M_MSG_APP_WRITE, user_data, len);
-    return LWM2M_ERRNO_OK;
-}
-
-int lwm2m_cmd_app_execute(void *msg, int len)
-{
-    (void)printf("EXCUTE num19 object success\r\n");
-    lwm2m_agent_receive(OC_LWM2M_MSG_APP_EXECUTE, msg, len);
-    return LWM2M_ERRNO_OK;
-}
-
-int lwm2m_cmd_server_bootrigger(void *msg, int len)
-{
-    (void)printf("SERVER TRIGGERE BOOTSTRAP\r\n");
-    lwm2m_agent_receive(OC_LWM2M_MSG_SRV_REBS, msg, len);
-    return LWM2M_ERRNO_OK;
-}
-
 int lwm2m_cmd_update_psk(char *psk_id, int len)
 {
     // memcpy_s(g_psk_value,psk_id,len,16);
@@ -360,9 +338,36 @@ int lwm2m_cmd_get_velocity(lwm2m_velocity_s *velocity)
     return LWM2M_ERRNO_OK;
 }
 
-int lwm2m_cmd_ioctl(int cmd, char *arg, int len)
+lwm2m_al_dealer_f s_default_dealer = NULL;
+
+int lwm2m_cmd_register_dealer(lwm2m_al_dealer_f dealer)
+{
+    s_default_dealer = dealer;
+    return 0;
+}
+
+static int lwm2m_cmd_default(char *msg, int len, va_list valist)
+{
+    int op = va_arg(valist, int);
+    const char *uri = va_arg(valist, const char *);
+
+    if (uri == NULL) {
+        return -1;
+    }
+
+    if (s_default_dealer) {
+        return s_default_dealer(op, uri, msg, len);
+    } else {
+        vlog_print("op: %d, uri: %s\n", op, uri);
+    }
+    return 0;
+}
+
+int lwm2m_cmd_ioctl(int cmd, char *arg, int len, ...)
 {
     int result = LWM2M_ERRNO_OK;
+    va_list valist;
+
     switch (cmd) {
     case LWM2M_CMD_GET_MANUFACTURER:
         result = lwm2m_cmd_get_manufacturer(arg, len);
@@ -442,12 +447,6 @@ int lwm2m_cmd_ioctl(int cmd, char *arg, int len)
     case LWM2M_CMD_GET_LINK_UTILIZATION:
         result = lwm2m_cmd_get_link_utilization((int *)arg);
         break;
-    case LWM2M_CMD_WRITE_APP_DATA:
-        result = lwm2m_cmd_app_write((int *)arg, len);
-        break;
-    case LWM2M_CMD_EXECUTE_APP_DATA:
-        result = lwm2m_cmd_app_execute((int *)arg, len);
-        break;
     case LWM2M_CMD_UPDATE_PSK:
         result = lwm2m_cmd_update_psk(arg, len);
         break;
@@ -497,6 +496,9 @@ int lwm2m_cmd_ioctl(int cmd, char *arg, int len)
 #endif
 
     default:
+        va_start(valist, len);
+        result = lwm2m_cmd_default(arg, len, valist);
+        va_end(valist);
         break;
     }
     return result;

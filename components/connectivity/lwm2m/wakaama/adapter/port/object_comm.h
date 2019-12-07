@@ -37,6 +37,8 @@ typedef enum {
     LWM2M_ERRNO_NOMEM = -3,
     LWM2M_ERRNO_OVERFLOW = -4,
     LWM2M_ERRNO_NORES = -5,
+    LWM2M_ERRNO_PERM = -6,      /* Operation not permitted */
+    LWM2M_ERRNO_REPEAT = -7,
 } lwm2m_errno_e;
 
 /**
@@ -83,8 +85,6 @@ typedef enum
     LWM2M_CMD_GET_CELL_ID,
     LWM2M_CMD_GET_LINK_QUALITY,
     LWM2M_CMD_GET_LINK_UTILIZATION,
-    LWM2M_CMD_WRITE_APP_DATA,
-    LWM2M_CMD_EXECUTE_APP_DATA,
     LWM2M_CMD_UPDATE_PSK,
     LWM2M_CMD_GET_LATITUDE,
     LWM2M_CMD_GET_LONGITUDE,
@@ -94,10 +94,12 @@ typedef enum
     LWM2M_CMD_GET_TIMESTAMP,
     LWM2M_CMD_GET_VELOCITY,
     LWM2M_CMD_GET_OTA_OPT,
-    LWM2M_CMD_TRIGER_SERVER_INITIATED_BS
+    LWM2M_CMD_TRIGER_SERVER_INITIATED_BS,
+    LWM2M_CMD_MAX
 } lwm2m_cmd_e;
 
-int lwm2m_cmd_ioctl(int cmd, char *arg, int len);
+int lwm2m_cmd_ioctl(int cmd, char *arg, int len, ...);
+int lwm2m_cmd_register_dealer(lwm2m_al_dealer_f dealer);
 
 typedef struct
 {
@@ -114,6 +116,13 @@ typedef struct {
     uint8_t opaque[MAX_VELOCITY_LEN];
     int     length;
 } lwm2m_velocity_s;
+
+/*
+ * object_common.c
+ */
+int lwm2m_add_object_ex(lwm2m_context_t *ctx, lwm2m_al_uri_t *uri, uintptr_t obj_data);
+int lwm2m_check_object(lwm2m_context_t *ctx); // check Mandatory objects
+int lwm2m_free_object(lwm2m_context_t *ctx);
 
 /*
  * object_device.c
@@ -149,18 +158,30 @@ lwm2m_object_t * get_object_device(void);
 void free_object_device(lwm2m_object_t * objectP);
 uint8_t device_change(lwm2m_data_t * dataArray, lwm2m_object_t * objectP);
 void display_device_object(lwm2m_object_t * objectP);
+
+int lwm2m_add_device_object(lwm2m_context_t *ctx, lwm2m_al_uri_t *uri, uintptr_t obj_data);
+#define lwm2m_free_device_object(obj)   free_object_device(obj)
+
 /*
  * object_firmware.c
  */
 lwm2m_object_t * get_object_firmware(void);
 void free_object_firmware(lwm2m_object_t * objectP);
 void display_firmware_object(lwm2m_object_t * objectP);
+
+int lwm2m_add_firmware_object(lwm2m_context_t *ctx, lwm2m_al_uri_t *uri, uintptr_t obj_data);
+#define lwm2m_free_firmware_object(obj) free_object_firmware(obj)
+
 /*
  * object_location.c
  */
 lwm2m_object_t * get_object_location(void);
 void free_object_location(lwm2m_object_t * object);
 void display_location_object(lwm2m_object_t * objectP);
+
+int lwm2m_add_location_object(lwm2m_context_t *ctx, lwm2m_al_uri_t *uri, uintptr_t obj_data);
+#define lwm2m_free_location_object(obj) free_object_location(obj)
+
 /*
  * object_test.c
  */
@@ -177,12 +198,18 @@ void free_server_object(lwm2m_object_t * object);
 void display_server_object(lwm2m_object_t * objectP);
 void copy_server_object(lwm2m_object_t * objectDest, lwm2m_object_t * objectSrc);
 
+int lwm2m_add_server_object(lwm2m_context_t *ctx, lwm2m_al_uri_t *uri, uintptr_t obj_data);
+#define lwm2m_free_server_object(obj)   free_server_object(obj)
+
 /*
  * object_connectivity_moni.c
  */
 lwm2m_object_t * get_object_conn_m(void);
 void free_object_conn_m(lwm2m_object_t * objectP);
 uint8_t connectivity_moni_change(lwm2m_data_t * dataArray, lwm2m_object_t * objectP);
+
+int lwm2m_add_conn_m_object(lwm2m_context_t *ctx, lwm2m_al_uri_t *uri, uintptr_t obj_data);
+#define lwm2m_free_conn_m_object(obj)   free_object_conn_m(obj)
 
 /*
  * object_connectivity_stat.c
@@ -191,6 +218,9 @@ extern lwm2m_object_t * get_object_conn_s(void);
 void free_object_conn_s(lwm2m_object_t * objectP);
 extern void conn_s_updateTxStatistic(lwm2m_object_t * objectP, uint16_t txDataByte, bool smsBased);
 extern void conn_s_updateRxStatistic(lwm2m_object_t * objectP, uint16_t rxDataByte, bool smsBased);
+
+int lwm2m_add_conn_s_object(lwm2m_context_t *ctx, lwm2m_al_uri_t *uri, uintptr_t obj_data);
+#define lwm2m_free_conn_s_object(obj)   free_object_conn_s(obj)
 
 /*
  * object_access_control.c
@@ -201,6 +231,9 @@ bool  acc_ctrl_obj_add_inst (lwm2m_object_t* accCtrlObjP, uint16_t instId,
                  uint16_t acObjectId, uint16_t acObjInstId, uint16_t acOwner);
 bool  acc_ctrl_oi_add_ac_val(lwm2m_object_t* accCtrlObjP, uint16_t instId,
                  uint16_t aclResId, uint16_t acValue);
+
+int lwm2m_add_acc_ctrl_object(lwm2m_context_t *ctx, lwm2m_al_uri_t *uri, uintptr_t obj_data);
+#define lwm2m_free_acc_ctrl_object(obj) acl_ctrl_free_object(obj)
 
 /*
  * object_security.c
@@ -228,22 +261,24 @@ typedef struct _security_instance_
     uint32_t                     bootstrapServerAccountTimeout;
 } security_instance_t;
 
-lwm2m_object_t * get_security_object(int serverId, lwm2m_al_config_t *config);
+lwm2m_object_t * get_security_object(int serverId, const char* serverUri, char * bsPskId, char * psk, uint16_t pskLen, bool isBootstrap);
 void clean_security_object(lwm2m_object_t * objectP);
 void free_security_object(lwm2m_object_t * objectP);
 char * get_server_uri(lwm2m_object_t * objectP, uint16_t secObjInstID);
 void display_security_object(lwm2m_object_t * objectP);
 void copy_security_object(lwm2m_object_t * objectDest, lwm2m_object_t * objectSrc);
 
+int lwm2m_add_security_object(lwm2m_context_t *ctx, lwm2m_al_uri_t *uri, uintptr_t obj_data);
+#define lwm2m_free_security_object(obj) free_security_object(obj)
+
 /*
- * object_binary_app_data.c
+ * object_app_data.c
  */
-#define BINARY_APP_DATA_OBJECT_ID   19
-#define BINARY_APP_DATA_RES_ID      0
-lwm2m_object_t * get_binary_app_data_object(lwm2m_al_config_t *config);
-void free_binary_app_data_object(lwm2m_object_t * object);
-void display_binary_app_data_object(lwm2m_object_t * objectP);
-void set_binary_app_data_object_rpt_max_cnt(uint32_t max_rpt_cnt);
+void free_app_object(lwm2m_object_t *object);
+void display_app_object(lwm2m_object_t *object);
+
+int lwm2m_add_app_object(lwm2m_context_t *ctx, lwm2m_al_uri_t *uri, uintptr_t obj_data);
+#define lwm2m_free_app_object(obj)  free_app_object(obj)
 
 #ifdef __cplusplus
 #if __cplusplus

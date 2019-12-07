@@ -13,12 +13,12 @@
  * Contributors:
  *    Bosch Software Innovations GmbH - Please refer to git log
  *    Pascal Rieux - please refer to git log
- *    
+ *
  ******************************************************************************/
 
 /*
  * This "Access Control" object is optional and multiple instantiated
- * 
+ *
  *  Resources:
  *
  *          Name         | ID | Oper. | Inst. | Mand.|  Type   | Range | Units |
@@ -29,7 +29,6 @@
  *  Access Control Owner |  3 |   RW  | Single|  Yes | Integer |0-65535|       |
  */
 
-#include "internals.h"
 #include "object_comm.h"
 #include <string.h>
 #include <ctype.h>
@@ -483,4 +482,65 @@ bool acc_ctrl_oi_add_ac_val (lwm2m_object_t *accCtrlObjP, uint16_t instId,
         return ret;
 
     return prv_add_ac_val (accCtrlOiP, acResId, acValue);
+}
+
+static lwm2m_object_t * lwm2m_get_acc_ctrl_object(void)
+{
+    lwm2m_object_t *accCtrlObj;
+
+    accCtrlObj = (lwm2m_object_t *) lwm2m_malloc(sizeof(lwm2m_object_t));
+    if (accCtrlObj == NULL) {
+        return NULL;
+    }
+    memset(accCtrlObj, 0, sizeof(lwm2m_object_t));
+    accCtrlObj->objID = LWM2M_ACL_OBJECT_ID;
+
+    accCtrlObj->readFunc    = prv_read;
+    accCtrlObj->writeFunc   = prv_write;
+    accCtrlObj->createFunc  = prv_create;
+    accCtrlObj->deleteFunc  = prv_delete;
+
+    return accCtrlObj;
+}
+
+static int lwm2m_add_acc_ctrl_instance(lwm2m_object_t *obj, lwm2m_al_uri_t *uri, uintptr_t obj_data)
+{
+    int ret = LWM2M_ERRNO_OK;
+
+    // TODO: add instance
+
+    return ret;
+}
+
+int lwm2m_add_acc_ctrl_object(lwm2m_context_t *ctx, lwm2m_al_uri_t *uri, uintptr_t obj_data)
+{
+    int ret = LWM2M_ERRNO_OK;
+    bool is_new = false;
+
+    lwm2m_object_t * obj = (lwm2m_object_t *)LWM2M_LIST_FIND(ctx->objectList, uri->obj_id);
+    if (obj == NULL) {
+        obj = lwm2m_get_acc_ctrl_object();
+        if (obj == NULL) {
+            return LWM2M_ERRNO_NOMEM;
+        }
+        is_new = true;
+    }
+
+    lwm2m_list_t *inst = LWM2M_LIST_FIND(obj->instanceList, uri->inst_id);
+    if (inst == NULL) {
+        ret = lwm2m_add_acc_ctrl_instance(obj, uri, obj_data);
+        if (ret != LWM2M_ERRNO_OK) {
+            if (is_new) {
+                lwm2m_free(obj);
+            }
+            return ret;
+        }
+    }
+    // ignore resources
+
+    if (is_new) {
+        lwm2m_add_object(ctx, obj);
+    }
+
+    return ret;
 }

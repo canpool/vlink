@@ -54,7 +54,7 @@
 #include "vos.h"
 #include "sal.h"
 
-#define cn_endpoint_id        "lwm2m_002"
+#define cn_endpoint_id        "lwm2m_test_02"//"lwm2m_002"
 #define cn_app_server         "49.4.85.232"
 #define cn_app_port           "5684"
 const unsigned char  s_app_psk[]={0x01,0x02,0x03,0x04,0x05,0x06};

@@ -42,12 +42,7 @@
  * Here we implement a very basic LWM2M Security Object which only knows NoSec security mode.
  */
 
-#include "liblwm2m.h"
 #include "object_comm.h"
-
-#include <stdlib.h>
-#include <string.h>
-#include <stdio.h>
 
 static uint8_t prv_get_value(lwm2m_data_t * dataP,
                              security_instance_t * targetP)
@@ -492,128 +487,51 @@ void clean_security_object(lwm2m_object_t * objectP)
     }
 }
 
-void free_security_object(lwm2m_object_t * objectP)
+lwm2m_object_t * get_security_object(int serverId,
+                                     const char* serverUri,
+                                     char * bsPskId,
+                                     char * psk,
+                                     uint16_t pskLen,
+                                     bool isBootstrap)
 {
-    clean_security_object(objectP);
-    lwm2m_free(objectP);
-}
-
-lwm2m_object_t * get_security_object(int serverId, lwm2m_al_config_t *config)
-{
-#define URI_MAX_LEN 64
-    lwm2m_object_t *securityObj = NULL;
-    char serverUri[URI_MAX_LEN] = {0};
-    security_instance_t *targetP = NULL;
-    int i = 0;
-    char *bsPskId = NULL;
-    char *psk = NULL;
-    uint16_t pskLen = 0;
-
-    const uint8_t INS_IOT_SERVER_FLAG = 0x01;
-    const uint8_t INS_BS_SERVER_FLAG = 0x02;
-    uint8_t  ins_flag = 0x00;
-    uint8_t total_ins = 1;
-    uint8_t index = 0;
-
-
-    switch (config->bs_mode)
-    {
-    case LWM2M_AL_BS_FACTORY:
-        ins_flag |= INS_IOT_SERVER_FLAG;
-        total_ins = 1;
-        break;
-    case LWM2M_AL_BS_CLIENT_INITIATED:
-        ins_flag |= INS_BS_SERVER_FLAG;
-        total_ins = 1;
-        break;
-    default:
-        return NULL;
-    }
+    lwm2m_object_t * securityObj;
 
     securityObj = (lwm2m_object_t *)lwm2m_malloc(sizeof(lwm2m_object_t));
-    if (NULL == securityObj)
-    {
-        return NULL;
-    }
-    memset(securityObj, 0, sizeof(lwm2m_object_t));
-    securityObj->objID = LWM2M_SECURITY_OBJECT_ID;
 
-    // at most, have two instance. in fact
-    for (i = 0; i < total_ins; ++i)
+    if (NULL != securityObj)
     {
+        security_instance_t * targetP;
+
+        memset(securityObj, 0, sizeof(lwm2m_object_t));
+
+        securityObj->objID = 0;
+
         // Manually create an hardcoded instance
         targetP = (security_instance_t *)lwm2m_malloc(sizeof(security_instance_t));
         if (NULL == targetP)
         {
-            free_security_object(securityObj);
+            lwm2m_free(securityObj);
             return NULL;
         }
 
         memset(targetP, 0, sizeof(security_instance_t));
-        if ((ins_flag & INS_IOT_SERVER_FLAG) && (ins_flag & INS_BS_SERVER_FLAG))
-        {
-            targetP->instanceId = i;   //i=0 for iot_server, i=1 for bs_server
-            targetP->isBootstrap = ((i == 0) ? (false) : (true));
-            index = i;
-        }
-        else
-        {
-            if (ins_flag & INS_IOT_SERVER_FLAG)
-            {
-                targetP->instanceId = 0;
-                targetP->isBootstrap = false;
-                index = 0;
-            }
-            else  //if(ins_flag & INS_BS_SERVER_FLAG)  //even if not set INS_BS_SERVER_FLAG, still run in a certain process.
-            {
-                targetP->instanceId = 1;
-                targetP->isBootstrap = true;
-                index = 1;
-            }
-        }
-        // After instance id is initialized
-        securityObj->instanceList = LWM2M_LIST_ADD(securityObj->instanceList, targetP);
-
-        bsPskId = (char *)config->server[index].psk_identity;
-        psk = (char *)config->server[index].psk_key;
-        pskLen = config->server[index].psk_key_len;
-
-        if (config->server[index].host && config->server[index].port)
-        {
-            if (psk != NULL)
-            {
-                (void)snprintf(serverUri, URI_MAX_LEN, "coaps://%s:%s", config->server[index].host,
-                                     config->server[index].port);
-            }
-            else
-            {
-                (void)snprintf(serverUri, URI_MAX_LEN, "coap://%s:%s", config->server[index].host,
-                                     config->server[index].port);
-            }
-        }
-        else
-        {
-            serverUri[0] = '\0';
-        }
-
-        targetP->uri = (char *)lwm2m_strdup(serverUri);
-        if (NULL == targetP->uri)
-        {
-            free_security_object(securityObj);
-            return NULL;
-        }
+        targetP->instanceId = 0;
+        targetP->uri = (char*)lwm2m_malloc(strlen(serverUri)+1);
+        strcpy(targetP->uri, serverUri);
 
         targetP->securityMode = LWM2M_SECURITY_MODE_NONE;
-        if (bsPskId != NULL && psk != NULL)
+        targetP->publicIdentity = NULL;
+        targetP->publicIdLen = 0;
+        targetP->secretKey = NULL;
+        targetP->secretKeyLen = 0;
+        if (bsPskId != NULL || psk != NULL)
         {
             targetP->securityMode = LWM2M_SECURITY_MODE_PRE_SHARED_KEY;
-            targetP->publicIdentity = (char *)lwm2m_strdup(bsPskId);
-            if(targetP->publicIdentity == NULL)
+            if (bsPskId)
             {
-                free_security_object(securityObj);
-                return NULL;
+                targetP->publicIdentity = strdup(bsPskId);
+                targetP->publicIdLen = strlen(bsPskId);
             }
-            targetP->publicIdLen = strlen(bsPskId);
             if (pskLen > 0)
             {
                 targetP->secretKey = (char *)lwm2m_malloc(pskLen);
@@ -626,20 +544,27 @@ lwm2m_object_t * get_security_object(int serverId, lwm2m_al_config_t *config)
                 targetP->secretKeyLen = pskLen;
             }
         }
-
+        targetP->isBootstrap = isBootstrap;
         targetP->shortID = serverId;
-        targetP->clientHoldOffTime = config->hold_off_time;
-    } //end for loop
+        targetP->clientHoldOffTime = 10;
 
+        securityObj->instanceList = LWM2M_LIST_ADD(securityObj->instanceList, targetP);
 
-    securityObj->readFunc = prv_security_read;
+        securityObj->readFunc = prv_security_read;
 #ifdef LWM2M_BOOTSTRAP
-    securityObj->writeFunc = prv_security_write;
-    securityObj->createFunc = prv_security_create;
-    securityObj->deleteFunc = prv_security_delete;
+        securityObj->writeFunc = prv_security_write;
+        securityObj->createFunc = prv_security_create;
+        securityObj->deleteFunc = prv_security_delete;
 #endif
+    }
 
     return securityObj;
+}
+
+void free_security_object(lwm2m_object_t * objectP)
+{
+    clean_security_object(objectP);
+    lwm2m_free(objectP);
 }
 
 char * get_server_uri(lwm2m_object_t * objectP,
@@ -653,4 +578,135 @@ char * get_server_uri(lwm2m_object_t * objectP,
     }
 
     return NULL;
+}
+
+static void free_security_instance(security_instance_t *inst)
+{
+    if (inst == NULL) return;
+
+    if (inst->uri != NULL) {
+        lwm2m_free(inst->uri);
+    }
+    if (inst->publicIdentity != NULL) {
+        lwm2m_free(inst->publicIdentity);
+    }
+    if (inst->secretKey != NULL) {
+        lwm2m_free(inst->secretKey);
+    }
+
+    lwm2m_free(inst);
+}
+
+static lwm2m_object_t * lwm2m_get_security_object(void)
+{
+    lwm2m_object_t *securityObj = NULL;
+
+    securityObj = (lwm2m_object_t *)lwm2m_malloc(sizeof(lwm2m_object_t));
+    if (securityObj == NULL) {
+        return NULL;
+    }
+    memset(securityObj, 0, sizeof(lwm2m_object_t));
+    securityObj->objID = LWM2M_SECURITY_OBJECT_ID;
+
+    securityObj->readFunc = prv_security_read;
+#ifdef LWM2M_BOOTSTRAP
+    securityObj->writeFunc = prv_security_write;
+    securityObj->createFunc = prv_security_create;
+    securityObj->deleteFunc = prv_security_delete;
+#endif
+
+    return securityObj;
+}
+
+static int lwm2m_add_security_instance(lwm2m_object_t *obj, lwm2m_al_uri_t *uri, uintptr_t obj_data)
+{
+    int ret = LWM2M_ERRNO_OK;
+
+    lwm2m_al_security_data_t *dataP = (lwm2m_al_security_data_t *)obj_data;
+    if (dataP == NULL) {
+        return LWM2M_ERRNO_INVAL;
+    }
+    const char *serverUri = dataP->serverUri;
+    char *bsPskId = dataP->publicIdentity;
+    char *psk = dataP->secretKey;
+    uint16_t pskLen = dataP->secretKeyLen;
+
+    security_instance_t * targetP;
+
+    targetP = (security_instance_t *)lwm2m_malloc(sizeof(security_instance_t));
+    if (targetP == NULL) {
+        return LWM2M_ERRNO_NOMEM;
+    }
+    memset(targetP, 0, sizeof(security_instance_t));
+    targetP->instanceId = uri->inst_id;
+
+    targetP->uri = (char *)lwm2m_strdup(serverUri);
+    if (targetP->uri == NULL) {
+        free_security_instance(targetP);
+        return LWM2M_ERRNO_NOMEM;
+    }
+
+    targetP->securityMode = LWM2M_SECURITY_MODE_NONE;
+    if (bsPskId != NULL && psk != NULL)
+    {
+        targetP->securityMode = LWM2M_SECURITY_MODE_PRE_SHARED_KEY;
+        targetP->publicIdentity = (char *)lwm2m_strdup(bsPskId);
+        if (targetP->publicIdentity == NULL)
+        {
+            free_security_instance(targetP);
+            return LWM2M_ERRNO_NOMEM;
+        }
+        targetP->publicIdLen = strlen(bsPskId);
+        if (pskLen > 0)
+        {
+            targetP->secretKey = (char*)lwm2m_malloc(pskLen);
+            if (targetP->secretKey == NULL)
+            {
+                free_security_instance(targetP);
+                return LWM2M_ERRNO_NOMEM;
+            }
+            memcpy(targetP->secretKey, psk, pskLen);
+            targetP->secretKeyLen = pskLen;
+        }
+    }
+    targetP->isBootstrap = dataP->isBootstrap;
+    targetP->shortID = dataP->shortID;
+    targetP->clientHoldOffTime = dataP->clientHoldOffTime;
+
+    obj->instanceList = LWM2M_LIST_ADD(obj->instanceList, targetP);
+
+    return ret;
+}
+
+int lwm2m_add_security_object(lwm2m_context_t *ctx, lwm2m_al_uri_t *uri, uintptr_t obj_data)
+{
+    int ret = LWM2M_ERRNO_OK;
+    bool is_new = false;
+
+    lwm2m_object_t * obj = (lwm2m_object_t *)LWM2M_LIST_FIND(ctx->objectList, uri->obj_id);
+    if (obj == NULL) {
+        obj = lwm2m_get_security_object();
+        if (obj == NULL) {
+            return LWM2M_ERRNO_NOMEM;
+        }
+        is_new = true;
+    }
+
+    lwm2m_list_t *inst = LWM2M_LIST_FIND(obj->instanceList, uri->inst_id);
+    if (inst == NULL) {
+        ret = lwm2m_add_security_instance(obj, uri, obj_data);
+        if (ret != LWM2M_ERRNO_OK) {
+            if (is_new) {
+                lwm2m_free(obj);
+            }
+            return ret;
+        }
+    }
+    // ignore resources
+
+    if (is_new) {
+        lwm2m_add_object(ctx, obj);
+    }
+
+    return ret;
 }

@@ -15,8 +15,7 @@
 
 #include "lwm2m_port.h"
 
-#include "internals.h"
-#include "connection.h"
+#include "object_comm.h"
 #include "commandline.h"
 
 #include "lwm2m_al.h"
@@ -27,75 +26,11 @@
 typedef struct {
     lwm2m_context_t *lwm2m_context;
     client_data_t client_data;
-    lwm2m_object_t *obj_array[OBJ_MAX_NUM];
     uint8_t *recv_buf;
     vtask_t task;
     int quit_flag;
 } lwm2m_cb_t;
 
-static int lwm2m_init_objects(lwm2m_cb_t *cb, int srv_id, lwm2m_al_config_t *config)
-{
-    cb->obj_array[OBJ_SECURITY_INDEX] = get_security_object(srv_id, config);
-    if (cb->obj_array[OBJ_SECURITY_INDEX] == NULL) {
-        return LWM2M_ERRNO_NOMEM;
-    }
-
-    cb->obj_array[OBJ_SERVER_INDEX] =
-        get_server_object(srv_id, config->binding, config->lifetime, config->storing_cnt != 0);
-    if (cb->obj_array[OBJ_SERVER_INDEX] == NULL) {
-        return LWM2M_ERRNO_NOMEM;
-    }
-
-    cb->obj_array[OBJ_ACCESS_CONTROL_INDEX] = acc_ctrl_create_object();
-    if (cb->obj_array[OBJ_ACCESS_CONTROL_INDEX] == NULL) {
-        return LWM2M_ERRNO_NOMEM;
-    }
-
-    cb->obj_array[OBJ_DEVICE_INDEX] = get_object_device();
-    if (cb->obj_array[OBJ_DEVICE_INDEX] == NULL) {
-        return LWM2M_ERRNO_NOMEM;
-    }
-
-    cb->obj_array[OBJ_CONNECT_INDEX] = get_object_conn_m();
-    if (cb->obj_array[OBJ_CONNECT_INDEX] == NULL) {
-        return LWM2M_ERRNO_NOMEM;
-    }
-
-    cb->obj_array[OBJ_FIRMWARE_INDEX] = get_object_firmware();
-    if (cb->obj_array[OBJ_FIRMWARE_INDEX] == NULL) {
-        return LWM2M_ERRNO_NOMEM;
-    }
-
-    cb->obj_array[OBJ_LOCATION_INDEX] = get_object_location();
-    if (cb->obj_array[OBJ_LOCATION_INDEX] == NULL) {
-        return LWM2M_ERRNO_NOMEM;
-    }
-
-    cb->obj_array[OBJ_APP_INDEX] = get_binary_app_data_object(config);
-    if (cb->obj_array[OBJ_APP_INDEX] == NULL) {
-        return LWM2M_ERRNO_NOMEM;
-    }
-
-    char *epname = config->endpoint;
-    if (lwm2m_configure(cb->lwm2m_context, epname, NULL, NULL, OBJ_MAX_NUM, cb->obj_array) != 0) {
-        return LWM2M_ERRNO_NORES;
-    }
-    return LWM2M_ERRNO_OK;
-}
-
-static int lwm2m_free_objects(lwm2m_cb_t *cb)
-{
-    safe_free_raw(cb->obj_array[OBJ_SECURITY_INDEX], free_security_object);
-    safe_free_raw(cb->obj_array[OBJ_SERVER_INDEX], free_server_object);
-    safe_free_raw(cb->obj_array[OBJ_ACCESS_CONTROL_INDEX], acl_ctrl_free_object);
-    safe_free_raw(cb->obj_array[OBJ_DEVICE_INDEX], free_object_device);
-    safe_free_raw(cb->obj_array[OBJ_CONNECT_INDEX], free_object_conn_m);
-    safe_free_raw(cb->obj_array[OBJ_FIRMWARE_INDEX], free_object_firmware);
-    safe_free_raw(cb->obj_array[OBJ_LOCATION_INDEX], free_object_location);
-    safe_free_raw(cb->obj_array[OBJ_APP_INDEX], free_binary_app_data_object);
-
-    return 0;
-}
 
 static int lwm2m_init_client_data(lwm2m_cb_t *cb)
 {
@@ -108,7 +43,6 @@ static int lwm2m_init_client_data(lwm2m_cb_t *cb)
     }
 
     pdata->lwm2mH = cb->lwm2m_context;
-    pdata->securityObjP = cb->obj_array[OBJ_SECURITY_INDEX];
 
     return LWM2M_ERRNO_OK;
 }
@@ -131,11 +65,10 @@ static int lwm2m_poll(lwm2m_cb_t *cb, uint32_t timeout)
     dataP = (client_data_t *)(contextP->userData);
     connP = dataP->connList;
 
-    while (connP != NULL) {
+    while (connP != NULL)
+    {
         numBytes = lwm2m_buffer_recv(connP, recv_buffer, MAX_PACKET_SIZE, timeout);
-        if (numBytes <= 0) {
-            vlog_print("no packet arrived!");
-        } else {
+        if (numBytes > 0) {
             output_buffer(stderr, recv_buffer, numBytes, 0);
             lwm2m_handle_packet(contextP, recv_buffer, numBytes, connP);
         }
@@ -147,7 +80,7 @@ static int lwm2m_poll(lwm2m_cb_t *cb, uint32_t timeout)
 
 static void lwm2m_rpt_ack_callback(rpt_list_t *list, rpt_data_t *data, int status)
 {
-    printf("ack callback: cookie: %d\n", data->cookie);
+    vlog_print("cookie: %d\n", data->cookie);
 }
 
 static void lwm2m_rpt_notify(rpt_list_t *list, void *ctx)
@@ -160,13 +93,18 @@ static void lwm2m_rpt_notify(rpt_list_t *list, void *ctx)
     }
 }
 
-static void __lwm2m_destroy(lwm2m_cb_t *cb)
+static void __lwm2m_disconnect(lwm2m_cb_t *cb)
 {
     cb->quit_flag = 0;
 
     vos_task_sleep(100);
 
     vos_task_delete(&cb->task);
+}
+
+static void __lwm2m_destroy(lwm2m_cb_t *cb)
+{
+    __lwm2m_disconnect(cb);
 
     lwm2m_close(cb->lwm2m_context);
 
@@ -176,7 +114,7 @@ static void __lwm2m_destroy(lwm2m_cb_t *cb)
         lwm2m_free(cb->recv_buf);
     }
 
-    lwm2m_free_objects(cb);
+    lwm2m_free_object(cb->lwm2m_context);
     lwm2m_destroy_client_data(cb);
 
     vos_free(cb);
@@ -189,7 +127,8 @@ static int __task_entry(uintptr_t arg)
     uint32_t timeout;
     int ret;
 
-    while (!cb->quit_flag) {
+    while (!cb->quit_flag)
+    {
         timeout = BIND_TIMEOUT * 1000;
 
         lwm2m_rpt_step(ctx, lwm2m_rpt_notify);
@@ -200,8 +139,8 @@ static int __task_entry(uintptr_t arg)
                 ctx->state = STATE_INITIAL;
             }
         }
-        if (0 == timeout) {
-            timeout = 1;
+        if (timeout < 1000) {
+            timeout = 1000;
         }
 
         lwm2m_poll(cb, timeout);
@@ -233,29 +172,18 @@ static int __init(uintptr_t *handle, lwm2m_al_config_t *config)
     if (cb->lwm2m_context == NULL) {
         goto EXIT_DESTROY_RPT;
     }
-
-    if ((ret = lwm2m_init_objects(cb, SERVER_ID, config)) != 0) {
-        vlog_error("lwm2m_init_objects() failed, ret = %d", ret);
-        goto EXIT_CLOSE_CONTEXT;
-    }
+    cb->lwm2m_context->endpointName = config->endpoint;
+    lwm2m_cmd_register_dealer(config->dealer);
 
     if ((ret = lwm2m_init_client_data(cb)) != 0) {
         vlog_error("lwm2m_init_client_data() failed, ret = %d", ret);
-        goto EXIT_FREE_OBJS;
-    }
-
-    if (vos_task_create(&cb->task, "wakaama_lwm2m", __task_entry, (uintptr_t)cb, 0x1000, 10) != 0) {
-        goto EXIT_DESTROY_CLIENT_DATA;
+        goto EXIT_CLOSE_CONTEXT;
     }
 
     *handle = (uintptr_t)cb;
 
     return 0;
 
-EXIT_DESTROY_CLIENT_DATA:
-    lwm2m_destroy_client_data(cb);
-EXIT_FREE_OBJS:
-    lwm2m_free_objects(cb);
 EXIT_CLOSE_CONTEXT:
     lwm2m_close(cb->lwm2m_context);
 EXIT_DESTROY_RPT:
@@ -273,6 +201,45 @@ static int __destroy(uintptr_t handle)
     lwm2m_cb_t *cb = (lwm2m_cb_t *)handle;
 
     __lwm2m_destroy(cb);
+    return 0;
+}
+
+static int __add_object(uintptr_t handle, lwm2m_al_uri_t *uri, uintptr_t obj_data)
+{
+    lwm2m_cb_t *cb = (lwm2m_cb_t *)handle;
+
+    return lwm2m_add_object_ex(cb->lwm2m_context, uri, obj_data);
+}
+
+static int __rm_object(uintptr_t handle, uint16_t obj_id)
+{
+    lwm2m_cb_t *cb = (lwm2m_cb_t *)handle;
+
+    return lwm2m_remove_object(cb->lwm2m_context, obj_id);
+}
+
+static int __connect(uintptr_t handle)
+{
+    lwm2m_cb_t *cb = (lwm2m_cb_t *)handle;
+
+    if (lwm2m_check_object(cb->lwm2m_context) != 0) {
+        return -1;
+    }
+    cb->client_data.securityObjP =
+        (lwm2m_object_t *)LWM2M_LIST_FIND(cb->lwm2m_context->objectList, LWM2M_SECURITY_OBJECT_ID);
+
+    if (vos_task_create(&cb->task, "wakaama_lwm2m", __task_entry, (uintptr_t)cb, 0x1000, 10) != 0) {
+        return -1;
+    }
+    return 0;
+}
+
+static int __disconnect(uintptr_t handle)
+{
+    lwm2m_cb_t *cb = (lwm2m_cb_t *)handle;
+
+    __lwm2m_disconnect(cb);
+
     return 0;
 }
 
@@ -304,6 +271,10 @@ static int __send(uintptr_t handle, const char *uri, const char *msg, int len, u
 static lwm2m_al_ops_t s_lwm2m_ops = {
     .init = __init,
     .destroy = __destroy,
+    .add_object = __add_object,
+    .rm_object = __rm_object,
+    .connect = __connect,
+    .disconnect = __disconnect,
     .send = __send
 };
 

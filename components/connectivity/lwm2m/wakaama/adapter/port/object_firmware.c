@@ -17,7 +17,7 @@
  *    Bosch Software Innovations GmbH - Please refer to git log
  *    Pascal Rieux - Please refer to git log
  *    Gregory Lemercier - Please refer to git log
- *    
+ *
  *******************************************************************************/
 
 /*
@@ -38,12 +38,7 @@
  * 9 update delivery method    read
  */
 
-#include "liblwm2m.h"
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <ctype.h>
+#include "object_comm.h"
 
 // ---- private object "Firmware" specific defines ----
 // Resource Id's:
@@ -355,3 +350,98 @@ void free_object_firmware(lwm2m_object_t * objectP)
     lwm2m_free(objectP);
 }
 
+static lwm2m_object_t * lwm2m_get_firmware_object(void)
+{
+    lwm2m_object_t * firmwareObj;
+
+    firmwareObj = (lwm2m_object_t *)lwm2m_malloc(sizeof(lwm2m_object_t));
+    if (firmwareObj == NULL) {
+        return NULL;
+    }
+    memset(firmwareObj, 0, sizeof(lwm2m_object_t));
+    firmwareObj->objID = LWM2M_FIRMWARE_UPDATE_OBJECT_ID;
+
+    firmwareObj->readFunc    = prv_firmware_read;
+    firmwareObj->writeFunc   = prv_firmware_write;
+    firmwareObj->executeFunc = prv_firmware_execute;
+
+    firmwareObj->userData    = lwm2m_malloc(sizeof(firmware_data_t));
+    if (firmwareObj->userData == NULL) {
+        lwm2m_free(firmwareObj);
+        return NULL;
+    }
+
+    firmware_data_t *data = (firmware_data_t*)(firmwareObj->userData);
+
+    data->state = 1;
+    data->result = 0;
+    strcpy(data->pkg_name, "lwm2mclient");
+    strcpy(data->pkg_version, "1.0");
+
+    /* Only support CoAP based protocols */
+    data->protocol_support[0] = 0;
+    data->protocol_support[1] = 1;
+    data->protocol_support[2] = LWM2M_FIRMWARE_PROTOCOL_NULL;
+    data->protocol_support[3] = LWM2M_FIRMWARE_PROTOCOL_NULL;
+
+    /* Only support push method */
+    data->delivery_method = 1;
+
+    return firmwareObj;
+}
+
+static int lwm2m_add_firmware_instance(lwm2m_object_t *obj, lwm2m_al_uri_t *uri, uintptr_t obj_data)
+{
+    int ret = LWM2M_ERRNO_OK;
+
+    lwm2m_list_t * targetP;
+
+    targetP = (lwm2m_list_t *)lwm2m_malloc(sizeof(lwm2m_list_t));
+    if (targetP == NULL) {
+        return LWM2M_ERRNO_NOMEM;
+    }
+    memset(targetP, 0, sizeof(lwm2m_list_t));
+
+    targetP->id = uri->obj_id;
+
+    obj->instanceList = LWM2M_LIST_ADD(obj->instanceList, targetP);
+
+    return ret;
+}
+
+int lwm2m_add_firmware_object(lwm2m_context_t *ctx, lwm2m_al_uri_t *uri, uintptr_t obj_data)
+{
+    int ret = LWM2M_ERRNO_OK;
+    bool is_new = false;
+
+    lwm2m_object_t * obj = (lwm2m_object_t *)LWM2M_LIST_FIND(ctx->objectList, uri->obj_id);
+    if (obj == NULL) {
+        obj = lwm2m_get_firmware_object();
+        if (obj == NULL) {
+            return LWM2M_ERRNO_NOMEM;
+        }
+        is_new = true;
+    }
+
+    lwm2m_list_t *inst = LWM2M_LIST_FIND(obj->instanceList, uri->inst_id);
+    if (inst == NULL) {
+        // single instance
+        if (obj->instanceList != NULL || uri->inst_id != 0) {
+            return LWM2M_ERRNO_PERM;
+        }
+        ret = lwm2m_add_firmware_instance(obj, uri, obj_data);
+        if (ret != LWM2M_ERRNO_OK) {
+            if (is_new) {
+                lwm2m_free(obj);
+            }
+            return ret;
+        }
+    }
+    // ignore resources
+
+    if (is_new) {
+        lwm2m_add_object(ctx, obj);
+    }
+
+    return ret;
+}

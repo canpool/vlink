@@ -54,7 +54,7 @@
 #include "vos.h"
 #include "sal.h"
 
-#define cn_endpoint_id        "lwm2m_001"
+#define cn_endpoint_id        "lwm2m_test_01"//"lwm2m_001"
 #define cn_app_server         "49.4.85.232"
 #define cn_app_port           "5683"
 
