@@ -51,6 +51,33 @@ ifeq ($(CONFIG_ECDSA256), y)
 	endif
 endif
 
+# hash
+ifeq ($(CONFIG_HASH), y)
+	ifeq ($(CONFIG_HASH_TYPE), mbedtls)
+	MBEDTLS_VSL_DEF += -D CONFIG_HASH_MBEDTLS
+	MBEDTLS_VSL_SRC += $(MBEDTLS_VSL_DIR)/vsl_hash.c
+	__CONFIG_MBEDTLS_VSL__ := y
+	endif
+endif
+
+# cmac
+ifeq ($(CONFIG_CMAC), y)
+	ifeq ($(CONFIG_CMAC_TYPE), mbedtls)
+	MBEDTLS_VSL_DEF += -D CONFIG_CMAC_MBEDTLS
+	MBEDTLS_VSL_SRC += $(MBEDTLS_VSL_DIR)/vsl_cmac.c
+	__CONFIG_MBEDTLS_VSL__ := y
+	endif
+endif
+
+# pbkdf2
+ifeq ($(CONFIG_PBKDF2), y)
+	ifeq ($(CONFIG_PBKDF2_TYPE), mbedtls)
+	MBEDTLS_VSL_DEF += -D CONFIG_PBKDF2_MBEDTLS
+	MBEDTLS_VSL_SRC += $(MBEDTLS_VSL_DIR)/vsl_pbkdf2.c
+	__CONFIG_MBEDTLS_VSL__ := y
+	endif
+endif
+
 ifeq ($(__CONFIG_MBEDTLS_VSL__), y)
 	include $(MBEDTLS_DIR)/core.mk
 

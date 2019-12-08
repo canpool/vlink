@@ -25,10 +25,6 @@
 #define MBEDTLS_ENTROPY_C
 #endif
 
-#ifndef MBEDTLS_ENTROPY_C
-#define MBEDTLS_ENTROPY_C
-#endif
-
 #ifndef MBEDTLS_SHA256_C
 #define MBEDTLS_SHA256_C
 #endif

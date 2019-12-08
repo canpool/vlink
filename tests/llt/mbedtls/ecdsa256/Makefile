@@ -37,7 +37,7 @@ CPP_SOURCES += $(wildcard $(CUR_DIR)/src/*.cpp)
 # CFLAGS
 #######################################
 # C defines
-C_DEFS	+= -DCONFIG_VLOG
+C_DEFS	+=
 
 # C includes
 C_INCLUDES += \

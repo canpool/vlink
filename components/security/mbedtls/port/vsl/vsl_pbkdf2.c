@@ -13,33 +13,27 @@
  * See the Mulan PSL v1 for more details.
  */
 
-#include "vsl_hmac.h"
+#include "vsl_pbkdf2.h"
 
+#include "mbedtls/pkcs5.h"
 #include "mbedtls/md.h"
-#include "mbedtls/ssl.h"
-#include "mbedtls/entropy.h"
-#include "mbedtls/ctr_drbg.h"
-#include "mbedtls/platform.h"
 
-#include "mbedtls/md_internal.h"
-
-#define VSL_HMAC_TYPE(len) ((len == 64) ? MBEDTLS_MD_SHA512 : MBEDTLS_MD_SHA256)
-
-int vsl_hmac(const unsigned char *key, size_t keylen, const unsigned char *input,
-             size_t ilen, unsigned char output[CONFIG_MACH_LEN])
+int vsl_pbkdf2(const unsigned char *pwd, unsigned int plen,
+               const unsigned char *salt, unsigned int slen,
+               unsigned int iter_cnt,
+               unsigned int key_len, unsigned char *output)
 {
     int ret;
     mbedtls_md_context_t mbedtls_md_ctx;
     const mbedtls_md_info_t *md_info;
-    mbedtls_md_type_t type = VSL_HMAC_TYPE(CONFIG_MACH_LEN);
 
-    if (key == NULL || input == NULL || output == NULL) {
+    if (pwd == NULL || salt == NULL || output == NULL) {
         vlog_error("illegal input");
         return MBEDTLS_ERR_MD_BAD_INPUT_DATA;
     }
 
-    md_info = mbedtls_md_info_from_type(type);
-    if (md_info == NULL || md_info->size > CONFIG_MACH_LEN) {
+    md_info = mbedtls_md_info_from_type(MBEDTLS_MD_SHA256);
+    if (md_info == NULL) {
         vlog_error("mbedtls_md_info_from_type() failed");
         return MBEDTLS_ERR_MD_BAD_INPUT_DATA;
     }
@@ -51,9 +45,11 @@ int vsl_hmac(const unsigned char *key, size_t keylen, const unsigned char *input
         goto exit;
     }
 
-    (void)mbedtls_md_hmac_starts(&mbedtls_md_ctx, key, keylen);
-    (void)mbedtls_md_hmac_update(&mbedtls_md_ctx, input, ilen);
-    (void)mbedtls_md_hmac_finish(&mbedtls_md_ctx, output);
+    if ((ret = mbedtls_pkcs5_pbkdf2_hmac(&mbedtls_md_ctx,
+        pwd, plen, salt, slen, iter_cnt, key_len, output)) != 0) {
+        vlog_error("mbedtls_pkcs5_pbkdf2_hmac() returned -0x%04x", -ret);
+        goto exit;
+    }
 
 exit:
     mbedtls_md_free(&mbedtls_md_ctx);

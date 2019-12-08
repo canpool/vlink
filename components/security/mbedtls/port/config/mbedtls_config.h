@@ -57,6 +57,18 @@
 #include "mbedtls_config_ecdsa.h"
 #endif
 
+#ifdef CONFIG_HASH_MBEDTLS
+#include "mbedtls_config_hash.h"
+#endif
+
+#ifdef CONFIG_CMAC_MBEDTLS
+#include "mbedtls_config_cmac.h"
+#endif
+
+#ifdef CONFIG_PBKDF2_MBEDTLS
+#include "mbedtls_config_pbkdf2.h"
+#endif
+
 #ifndef MBEDTLS_ENTROPY_MAX_SOURCES
 #define MBEDTLS_ENTROPY_MAX_SOURCES 2
 #endif

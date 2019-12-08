@@ -33,6 +33,10 @@ extern "C" {
 #define CONFIG_CURVE_NAME_LEN   20
 #endif
 
+#ifndef CONFIG_CSR_DERBUF_LEN
+#define CONFIG_CSR_DERBUF_LEN   2048
+#endif
+
 #define VSL_SECP256R1_NAME  "secp256r1"
 #define VSL_PRIME256V1_NAME "prime256v1"
 #define VSL_SECP256K1_NAME  "secp256k1"
@@ -41,11 +45,11 @@ extern "C" {
 
 
 int vsl_ecdsa_gen_keypair(unsigned char public_key[CONFIG_ECDSA_PUBKEY_LEN],
-                      unsigned char private_key[CONFIG_ECDSA_PRIKEY_LEN]);
+                          unsigned char private_key[CONFIG_ECDSA_PRIKEY_LEN]);
 int vsl_ecdsa_sign(unsigned char private_key[CONFIG_ECDSA_PRIKEY_LEN], unsigned char *data,
-               unsigned int data_len, unsigned char out_sig[CONFIG_ECDSA_SIG_LEN]);
+                   unsigned int data_len, unsigned char out_sig[CONFIG_ECDSA_SIG_LEN]);
 int vsl_ecdsa_verify(unsigned char peer_public_key[CONFIG_ECDSA_PUBKEY_LEN], unsigned char *data,
-                 unsigned int data_len, unsigned char in_sig[CONFIG_ECDSA_SIG_LEN]);
+                     unsigned int data_len, unsigned char in_sig[CONFIG_ECDSA_SIG_LEN]);
 int vsl_ecdsa_gen_shared(unsigned char private_key[CONFIG_ECDSA_PRIKEY_LEN],
                          unsigned char peer_public_key[CONFIG_ECDSA_PUBKEY_LEN],
                          unsigned char shared_key[CONFIG_ECDSA_SHRKEY_LEN]);
@@ -66,15 +70,8 @@ typedef struct __vsl_curve_point {
 int vsl_ecdsa_get_curve(char *name, unsigned int nlen, vsl_curve_point *points);
 int vsl_ecdsa_def_curve(const char *name, vsl_curve_point *points);
 
-#ifdef CONFIG_ECDSA256_CSR_MBEDTLS
-
-#ifndef CONFIG_CSR_DERBUF_LEN
-#define CONFIG_CSR_DERBUF_LEN   2048
-#endif
-
 int vsl_ecdsa_gen_csr(unsigned char private_key[CONFIG_ECDSA_PRIKEY_LEN], const char *subject,
                       char *buf, unsigned int *iolen);
-#endif
 
 #ifdef __cplusplus
 }
