@@ -96,7 +96,7 @@ typedef struct {
 typedef struct {
     char               *host;
     char               *port;
-    mqtt_al_scy_t      *security;
+    mqtt_al_scy_t       security;
 
     mqtt_al_ver_e       version;
     mqtt_al_string_t    clientid;

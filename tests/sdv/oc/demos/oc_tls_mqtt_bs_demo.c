@@ -135,15 +135,15 @@ static vtask_t  s_report_task, s_cmd_task;
 
 static oc_context_t s_mqtt_handle;
 
-static int app_msg_deal(uintptr_t handle, mqtt_al_rcv_t *msg)
+static int app_msg_deal(uintptr_t handle, oc_mqtt_rcv_t *msg)
 {
     int ret = -1;
-    printf("topic:%s qos:%d\n\r", msg->topic.data, msg->qos);
+    printf("topic:%s qos:%d\n\r", msg->topic, msg->qos);
 
-    if (msg->msg.len < cn_app_rcv_buf_len) {
-        memcpy(s_rcv_buffer, msg->msg.data, msg->msg.len);
-        s_rcv_buffer[msg->msg.len] = '\0'; ///< the json need it
-        s_rcv_datalen = msg->msg.len;
+    if (msg->data_len < cn_app_rcv_buf_len) {
+        memcpy(s_rcv_buffer, msg->data, msg->data_len);
+        s_rcv_buffer[msg->data_len] = '\0'; ///< the json need it
+        s_rcv_datalen = msg->data_len;
 
         printf("msg:%s\n\r", s_rcv_buffer);
 
@@ -170,16 +170,16 @@ static int oc_mqtt_report_entry(uintptr_t args)
         config.host = BS_SERVER_ADDRESS;
         config.port = BS_SERVER_PORT;
         config.dealer = app_msg_deal;
-        config.code_mode = OC_MQTT_CODE_MODE_JSON;
+        config.codec_mode = OC_MQTT_CODEC_MODE_JSON;
         config.sign_type = OC_MQTT_SIGN_TYPE_HMACSHA256;
         config.dev_type = OC_MQTT_DEV_TYPE_STATIC;
         config.auth_type = OC_MQTT_AUTH_TYPE_NODEID;
         config.dev_info.s.devid = DEMO_WITH_BOOTSTRAP_NODEID;
         config.dev_info.s.devpwd = DEMO_WITH_BOOTSTRAP_PASSWORD;
 
-        config.security.type = MQTT_AL_SECURTIY_CAS;
-        config.security.u.cas.crt.data = s_mqtt_ca_crt;
-        config.security.u.cas.crt.len = sizeof(s_mqtt_ca_crt); ///< must including the end '\0'
+        config.security.type = OC_MQTT_SECURTIY_CAS;
+        config.security.u.cas.cert = (unsigned char *)s_mqtt_ca_crt;
+        config.security.u.cas.cert_len = sizeof(s_mqtt_ca_crt); ///< must including the end '\0'
 
         if (oc_mqtt_init(&s_mqtt_handle, &config) != 0) {
             printf("config err\r\n");
@@ -206,7 +206,7 @@ static int oc_mqtt_report_entry(uintptr_t args)
             if (NULL != root) {
                 buf = cJSON_Print(root);
                 if (NULL != buf) {
-                    if (0 == oc_mqtt_report(s_mqtt_handle, buf, strlen(buf), MQTT_AL_QOS_1)) {
+                    if (0 == oc_mqtt_report(s_mqtt_handle, buf, strlen(buf), OC_MQTT_QOS_1)) {
                         printf("times:%d power:%d\r\n", times++, leftpower);
                     }
                     vos_free(buf);
@@ -293,7 +293,7 @@ static int oc_mqtt_cmd_entry(uintptr_t args)
                 if (NULL != msg) {
                     buf = cJSON_Print(msg);
                     if (NULL != buf) {
-                        if (0 == oc_mqtt_report(s_mqtt_handle, buf, strlen(buf), MQTT_AL_QOS_1)) {
+                        if (0 == oc_mqtt_report(s_mqtt_handle, buf, strlen(buf), OC_MQTT_QOS_1)) {
                             printf("SNDMSG:%s\n\r", buf);
                         }
                         vos_free(buf);

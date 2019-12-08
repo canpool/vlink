@@ -267,7 +267,7 @@ static int __connect(uintptr_t handle, mqtt_al_conn_t *con)
     MQTTConnackData conack;
     int ret;
 
-    n->arg = (uintptr_t)con->security;
+    n->arg = (uintptr_t)&con->security;
 
     if ((ret = __io_connect(n, con->host, con->port)) != 0) {
         vlog_print("__io_connect() failed, ret = %d", ret);

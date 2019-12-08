@@ -25,13 +25,19 @@
 #include "cJSON.h"
 
 
+// https://support.huaweicloud.com/api-iothub/iot_06_3002.html
+// iot -> dev, /huawei/v1/devices/{deviceId}/command/{codecMode}
 #define MQTT_DMP_DATA_COMMAND_FMT       "/huawei/v1/devices/%s/command/%s"
+// dev -> iot, /huawei/v1/devices/{deviceId}/data/{codecMode}
 #define MQTT_DMP_DATA_REPORT_FMT        "/huawei/v1/devices/%s/data/%s"
 
 #define MQTT_SECRET_NOTIFY_TOPIC_FMT    "/huawei/v1/products/%s/sn/%s/secretNotify"
 #define MQTT_SECRET_ACK_TOPIC_FMT       "/huawei/v1/products/%s/sn/%s/secretACK"
 
+// https://support.huaweicloud.com/api-iotps/iot_03_0001.html
+// dev -> iot, /huawei/v1/devices/{nodeId}/iodpsData
 #define MQTT_BS_DATA_REPORT_FMT         "/huawei/v1/devices/%s/iodpsData"
+// iot -> dev, /huawei/v1/devices/{nodeId}/iodpsCommand
 #define MQTT_BS_DATA_COMMAND_FMT        "/huawei/v1/devices/%s/iodpsCommand"
 
 /* The unit is millisecond */
@@ -40,12 +46,13 @@
 
 #define MQTT_CHECK_TIME_VALUE           "2018111517"
 
+// deviceId_authType_signType_timestamp
 #define MQTT_OC_CLIENTID_STATIC_FMT     "%s_%d_%d_%s"
 #define MQTT_OC_CLIENTID_DYNAMIC_FMT    "%s_%s_%d_%d_%s"
 
 #define MQTT_STRING_MAX_LEN             127
 
-static const char *s_codec_mode[OC_MQTT_CODE_MODE_MAX] = {"binary", "json"};
+static const char *s_codec_mode[OC_MQTT_CODEC_MODE_MAX] = {"binary", "json"};
 
 typedef struct {
     char    *dmp_addr; // get from the bs server
@@ -65,7 +72,7 @@ typedef struct {
     char           *cli_id;
     char           *srv_addr;
     char           *srv_port;
-    oc_mqtt_dealer  dealer;
+    mqtt_al_dealer  dealer;
 
     /* state flag */
     unsigned int    flag_run            : 1;
@@ -77,6 +84,22 @@ typedef struct {
 } agent_mqtt_t;
 
 static agent_mqtt_t *s_agent_mqtt = NULL;
+
+static int agent_handle_app_msg(uintptr_t handle, mqtt_al_rcv_t *msg)
+{
+    oc_mqtt_rcv_t oc_msg;
+
+    memset(&oc_msg, 0, sizeof(oc_mqtt_rcv_t));
+    oc_msg.topic = msg->topic.data;
+    oc_msg.topic_len = msg->topic.len;
+    oc_msg.data = msg->msg.data;
+    oc_msg.data_len = msg->msg.len;
+    oc_msg.qos = msg->qos;
+
+    s_agent_mqtt->config.dealer((uintptr_t)s_agent_mqtt, &oc_msg);
+
+    return 0;
+}
 
 static int agent_free_param(agent_mqtt_t *agent)
 {
@@ -151,7 +174,7 @@ EXIT_FREE_JSON_BUF:
         return ret;
     }
 
-    s_agent_mqtt->config.dealer((uintptr_t)s_agent_mqtt, msg);
+    agent_handle_app_msg(handle, msg);
 
     return ret;
 }
@@ -199,23 +222,23 @@ static int agent_gen_dmp_param(agent_mqtt_t *agent)
 
         // subscribe topic
         len = strnlen(agent->config.dev_info.s.devid, MQTT_STRING_MAX_LEN) +
-                strnlen(s_codec_mode[agent->config.code_mode], MQTT_STRING_MAX_LEN) +
+                strnlen(s_codec_mode[agent->config.codec_mode], MQTT_STRING_MAX_LEN) +
                 strlen(MQTT_DMP_DATA_COMMAND_FMT) + 1;
         if ((agent->sub_topic = (char *)vos_malloc(len)) == NULL) {
             goto EXIT_MALLOC;
         }
         snprintf(agent->sub_topic, len, MQTT_DMP_DATA_COMMAND_FMT,
-                agent->config.dev_info.s.devid, s_codec_mode[agent->config.code_mode]);
+                agent->config.dev_info.s.devid, s_codec_mode[agent->config.codec_mode]);
 
         // publish topic
         len = strnlen(agent->config.dev_info.s.devid, MQTT_STRING_MAX_LEN) +
-                strnlen(s_codec_mode[agent->config.code_mode], MQTT_STRING_MAX_LEN) +
+                strnlen(s_codec_mode[agent->config.codec_mode], MQTT_STRING_MAX_LEN) +
                 strlen(MQTT_DMP_DATA_REPORT_FMT) + 1;
         if ((agent->pub_topic = (char *)vos_malloc(len)) == NULL) {
             goto EXIT_MALLOC;
         }
         snprintf(agent->pub_topic, len, MQTT_DMP_DATA_REPORT_FMT,
-                agent->config.dev_info.s.devid, s_codec_mode[agent->config.code_mode]);
+                agent->config.dev_info.s.devid, s_codec_mode[agent->config.codec_mode]);
 
         if (agent->config.bs_mode == OC_MQTT_BS_MODE_CLIENT_INITIALIZE) {
             agent->srv_addr = agent->bs.dmp_addr;
@@ -235,6 +258,12 @@ EXIT_MALLOC:
     return -1;
 }
 
+// https://support.huaweicloud.com/api-iotps/iot_03_0006.html
+//
+// {
+//     "address": "10.0.0.1:8883",
+//     "dnsFlag": 1
+// }
 static int agent_handle_bs_msg(uintptr_t handle, mqtt_al_rcv_t *msg)
 {
     int     ret = -1;
@@ -303,6 +332,7 @@ EXIT_FREE_JSON_BUF:
     return ret;
 }
 
+// https://support.huaweicloud.com/api-iotps/iot_03_0004.html
 static int agent_gen_bs_param(agent_mqtt_t *agent)
 {
     int len;
@@ -370,6 +400,33 @@ EXIT_MALLOC:
     return -1;
 }
 
+static void copy_security_param(mqtt_al_scy_t *al_scy,
+                                oc_mqtt_scy_t *oc_scy)
+{
+    if (oc_scy->type == OC_MQTT_SECURITY_PSK) {
+        al_scy->type = MQTT_AL_SECURITY_PSK;
+        al_scy->u.psk.id.data  = (char *)oc_scy->u.psk.psk_identity;
+        al_scy->u.psk.id.len   = (int)oc_scy->u.psk.psk_identity_len;
+        al_scy->u.psk.key.data = (char *)oc_scy->u.psk.psk_key;
+        al_scy->u.psk.key.len  = (int)oc_scy->u.psk.psk_key_len;
+    } else if (oc_scy->type == OC_MQTT_SECURTIY_CAS) {
+        al_scy->type = MQTT_AL_SECURTIY_CAS;
+        al_scy->u.cas.crt.data = (char *)oc_scy->u.cas.cert;
+        al_scy->u.cas.crt.len  = (int)oc_scy->u.cas.cert_len;
+    } else if (oc_scy->type == OC_MQTT_SECURITY_CACS) {
+        al_scy->type = MQTT_AL_SECURITY_CACS;
+        al_scy->u.cacs.s_crt.data = (char *)oc_scy->u.cacs.s_crt.cert;
+        al_scy->u.cacs.s_crt.len  = (int)oc_scy->u.cacs.s_crt.cert_len;
+        al_scy->u.cacs.c_crt.data = (char *)oc_scy->u.cacs.c_crt.cert;
+        al_scy->u.cacs.c_crt.len  = (int)oc_scy->u.cacs.c_crt.cert_len;
+        al_scy->u.cacs.c_key.data = (char *)oc_scy->u.cacs.c_key.cert;
+        al_scy->u.cacs.c_key.len  = (int)oc_scy->u.cacs.c_key.cert_len;
+        al_scy->u.cacs.host.data  = (char *)oc_scy->u.cacs.host;
+        al_scy->u.cacs.host.len   = (int)strlen(oc_scy->u.cacs.host);
+    }
+}
+
+// https://support.huaweicloud.com/api-iotps/iot_03_0004.html
 static int agent_connect(agent_mqtt_t *agent)
 {
     mqtt_al_conn_t con;
@@ -387,7 +444,8 @@ static int agent_connect(agent_mqtt_t *agent)
 
     con.cleansession = 1;
     con.keepalive = agent->config.lifetime;
-    con.security = &agent->config.security;
+
+    copy_security_param(&con.security, &agent->config.security);
 
     con.host = agent->srv_addr;
     con.port = agent->srv_port;
@@ -418,6 +476,7 @@ static int agent_subscribe(agent_mqtt_t *agent)
     return mqtt_al_subscribe(agent->mqtter, &sub);
 }
 
+// https://support.huaweicloud.com/api-iotps/iot_03_0005.html
 static int agent_publish(agent_mqtt_t *agent)
 {
     mqtt_al_pub_t pub;
@@ -534,7 +593,6 @@ static int agent_mqtt(uintptr_t args)
         } else {
             vos_task_sleep(1000);
         }
-
     }
     return 0;
 }

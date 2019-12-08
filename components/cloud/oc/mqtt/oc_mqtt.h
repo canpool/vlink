@@ -20,11 +20,17 @@
 #include <stddef.h>
 
 #include "oc_json.h"
-#include "mqtt_al.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif /* __cplusplus */
+
+typedef enum {
+    OC_MQTT_QOS_0,
+    OC_MQTT_QOS_1,
+    OC_MQTT_QOS_2,
+    OC_MQTT_SUB_FAIL = 0x80
+} oc_mqtt_qos_e;
 
 typedef enum {
     OC_MQTT_DEV_TYPE_DYNAMIC,
@@ -32,10 +38,10 @@ typedef enum {
 } oc_mqtt_dev_type_e;
 
 typedef enum {
-    OC_MQTT_CODE_MODE_BINARY,
-    OC_MQTT_CODE_MODE_JSON,
-    OC_MQTT_CODE_MODE_MAX
-} oc_mqtt_code_mode_e;
+    OC_MQTT_CODEC_MODE_BINARY,
+    OC_MQTT_CODEC_MODE_JSON,
+    OC_MQTT_CODEC_MODE_MAX
+} oc_mqtt_codec_mode_e;
 
 typedef enum {
     OC_MQTT_SIGN_TYPE_HMACSHA256,
@@ -58,6 +64,43 @@ typedef enum {
     OC_MQTT_ERR_CODE_FAIL = 1
 } oc_mqtt_err_code_e;
 
+/* security type */
+typedef enum {
+    OC_MQTT_SECURITY_PSK,
+    OC_MQTT_SECURTIY_CAS,
+    OC_MQTT_SECURITY_CACS
+} oc_mqtt_scy_e;
+
+typedef struct {
+    unsigned char  *psk_identity;
+    size_t          psk_identity_len;
+    unsigned char  *psk_key;
+    size_t          psk_key_len;
+} oc_mqtt_psk_t;
+
+/* ca mode, only check the server */
+typedef struct {
+    unsigned char  *cert;
+    size_t          cert_len;
+} oc_mqtt_ca_t;
+
+typedef struct {
+    oc_mqtt_ca_t    s_crt; // server crt
+    oc_mqtt_ca_t    c_crt; // client crt
+    oc_mqtt_ca_t    c_key; // client ca key
+    char           *host;
+} oc_mqtt_cacs_t;
+
+/* security config */
+typedef struct {
+    oc_mqtt_scy_e       type;
+    union {
+        oc_mqtt_psk_t   psk;
+        oc_mqtt_ca_t    cas;
+        oc_mqtt_cacs_t  cacs;
+    } u;
+} oc_mqtt_scy_t;
+
 typedef struct {
     const char *productid;
     const char *productpwd;
@@ -72,15 +115,23 @@ typedef struct {
     const char *devpwd;
 } oc_mqtt_dev_static_t;
 
-typedef int (*oc_mqtt_dealer)(uintptr_t, mqtt_al_rcv_t *);
+typedef struct {
+    char       *topic;
+    int         topic_len;
+    char       *data;
+    int         data_len;
+    uint8_t     qos;
+} oc_mqtt_rcv_t;
+
+typedef int (*oc_mqtt_dealer)(uintptr_t, oc_mqtt_rcv_t *);
 
 typedef struct {
     oc_mqtt_bs_mode_e   bs_mode;
     uint16_t            lifetime;
     const char         *host;
     const char         *port;
-    mqtt_al_scy_t       security;
-    oc_mqtt_code_mode_e code_mode;
+    oc_mqtt_scy_t       security;
+    oc_mqtt_codec_mode_e codec_mode;
     oc_mqtt_sign_type_e sign_type;
     oc_mqtt_dev_type_e  dev_type;
     oc_mqtt_auth_type_e auth_type;
