@@ -74,6 +74,72 @@ int lwm2m_add_object_ex(lwm2m_context_t *ctx, lwm2m_al_uri_t *uri, uintptr_t obj
     return ret;
 }
 
+static void prv_free_object(lwm2m_object_t *obj)
+{
+    switch (obj->objID)
+    {
+    case LWM2M_SECURITY_OBJECT_ID:
+        lwm2m_free_security_object(obj);
+        break;
+
+    case LWM2M_SERVER_OBJECT_ID:
+        lwm2m_free_server_object(obj);
+        break;
+
+    case LWM2M_ACL_OBJECT_ID:
+        lwm2m_free_acc_ctrl_object(obj);
+        break;
+
+    case LWM2M_DEVICE_OBJECT_ID:
+        lwm2m_free_device_object(obj);
+        break;
+
+    case LWM2M_CONN_MONITOR_OBJECT_ID:
+        lwm2m_free_conn_m_object(obj);
+        break;
+
+    case LWM2M_FIRMWARE_UPDATE_OBJECT_ID:
+        lwm2m_free_firmware_object(obj);
+        break;
+
+    case LWM2M_LOCATION_OBJECT_ID:
+#ifdef LWM2M_CLIENT_MODE
+        lwm2m_free_location_object(obj);
+#endif // LWM2M_CLIENT_MODE
+        break;
+
+    case LWM2M_CONN_STATS_OBJECT_ID:
+        lwm2m_free_conn_s_object(obj);
+        break;
+
+    case LWM2M_OSCORE_OBJECT_ID:
+        break;
+
+    default:
+        lwm2m_free_app_object(obj);
+        break;
+    }
+}
+
+int lwm2m_rm_object(lwm2m_context_t *ctx, uint16_t id)
+{
+    if (ctx == NULL) {
+        return LWM2M_ERRNO_INVAL;
+    }
+    lwm2m_object_t * obj = NULL;
+
+    obj = (lwm2m_object_t *)LWM2M_LIST_FIND(ctx->objectList, id);
+    if (obj == NULL) {
+        return LWM2M_ERRNO_NORES;
+    }
+    if (lwm2m_remove_object(ctx, id) != 0) {
+        return LWM2M_ERRNO_NORES;
+    }
+    prv_free_object(obj);
+
+    return LWM2M_ERRNO_OK;
+}
+
 int lwm2m_check_object(lwm2m_context_t *ctx)
 {
     if (ctx == NULL) {
@@ -112,49 +178,7 @@ int lwm2m_free_object(lwm2m_context_t *ctx)
     while (obj != NULL) {
         lwm2m_object_t *nextP = obj->next;
 
-        switch (obj->objID)
-        {
-        case LWM2M_SECURITY_OBJECT_ID:
-            lwm2m_free_security_object(obj);
-            break;
-
-        case LWM2M_SERVER_OBJECT_ID:
-            lwm2m_free_server_object(obj);
-            break;
-
-        case LWM2M_ACL_OBJECT_ID:
-            lwm2m_free_acc_ctrl_object(obj);
-            break;
-
-        case LWM2M_DEVICE_OBJECT_ID:
-            lwm2m_free_device_object(obj);
-            break;
-
-        case LWM2M_CONN_MONITOR_OBJECT_ID:
-            lwm2m_free_conn_m_object(obj);
-            break;
-
-        case LWM2M_FIRMWARE_UPDATE_OBJECT_ID:
-            lwm2m_free_firmware_object(obj);
-            break;
-
-        case LWM2M_LOCATION_OBJECT_ID:
-#ifdef LWM2M_CLIENT_MODE
-            lwm2m_free_location_object(obj);
-#endif // LWM2M_CLIENT_MODE
-            break;
-
-        case LWM2M_CONN_STATS_OBJECT_ID:
-            lwm2m_free_conn_s_object(obj);
-            break;
-
-        case LWM2M_OSCORE_OBJECT_ID:
-            break;
-
-        default:
-            lwm2m_free_app_object(obj);
-            break;
-        }
+        prv_free_object(obj);
 
         obj = nextP;
     }

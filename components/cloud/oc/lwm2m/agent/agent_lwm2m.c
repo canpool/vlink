@@ -293,7 +293,6 @@ int agent_op_init(uintptr_t *handle, oc_config_t *config)
 
     al_config.endpoint = config->endpoint;
     al_config.dealer = agent_dealer_callback;
-    al_config.usr_data = config->user_data;
 
     config->binding = "UQ";
     config->lifetime = 20;

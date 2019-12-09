@@ -357,7 +357,7 @@ void free_app_object(lwm2m_object_t *object)
     lwm2m_free(object);
 }
 
-static lwm2m_object_t *lwm2m_get_app_object(uint16_t obj_id, uintptr_t obj_data)
+static lwm2m_object_t *lwm2m_get_app_object(uint16_t obj_id)
 {
     lwm2m_object_t * appObj;
 

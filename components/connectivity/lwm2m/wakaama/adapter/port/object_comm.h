@@ -121,6 +121,7 @@ typedef struct {
  * object_common.c
  */
 int lwm2m_add_object_ex(lwm2m_context_t *ctx, lwm2m_al_uri_t *uri, uintptr_t obj_data);
+int lwm2m_rm_object(lwm2m_context_t *ctx, uint16_t id);
 int lwm2m_check_object(lwm2m_context_t *ctx); // check Mandatory objects
 int lwm2m_free_object(lwm2m_context_t *ctx);
 

@@ -215,7 +215,7 @@ static int __rm_object(uintptr_t handle, uint16_t obj_id)
 {
     lwm2m_cb_t *cb = (lwm2m_cb_t *)handle;
 
-    return lwm2m_remove_object(cb->lwm2m_context, obj_id);
+    return lwm2m_rm_object(cb->lwm2m_context, obj_id);
 }
 
 static int __connect(uintptr_t handle)
