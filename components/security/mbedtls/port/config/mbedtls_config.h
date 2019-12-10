@@ -45,6 +45,8 @@
 #ifndef MBEDTLS_CONFIG_H
 #define MBEDTLS_CONFIG_H
 
+#include "mbedtls_config_lightweight.h"
+
 #ifdef CONFIG_DTLS_MBEDTLS
 #include "mbedtls_config_dtls.h"
 #endif
@@ -67,10 +69,6 @@
 
 #ifdef CONFIG_PBKDF2_MBEDTLS
 #include "mbedtls_config_pbkdf2.h"
-#endif
-
-#ifndef MBEDTLS_ENTROPY_MAX_SOURCES
-#define MBEDTLS_ENTROPY_MAX_SOURCES 2
 #endif
 
 #include "mbedtls/check_config.h"

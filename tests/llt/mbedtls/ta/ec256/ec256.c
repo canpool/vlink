@@ -417,10 +417,6 @@ exit:
     return (ret ? -1 : 0);
 }
 
-#include "mbedtls/platform_util.h"
-/* Parameter validation macros based on platform_util.h */
-#define ECDSA_VALIDATE_RET( cond )    \
-    MBEDTLS_INTERNAL_VALIDATE_RET( cond, MBEDTLS_ERR_ECP_BAD_INPUT_DATA )
 /*
  * Compute and write signature
  */
@@ -433,9 +429,6 @@ static int __mbedtls_ecdsa_write_signature( mbedtls_ecdsa_context *ctx,
 {
     int ret;
     mbedtls_mpi r, s;
-    ECDSA_VALIDATE_RET( ctx  != NULL );
-    ECDSA_VALIDATE_RET( hash != NULL );
-    ECDSA_VALIDATE_RET( sig  != NULL );
 
     mbedtls_mpi_init( &r );
     mbedtls_mpi_init( &s );
@@ -465,9 +458,6 @@ static int __mbedtls_ecdsa_read_signature( mbedtls_ecdsa_context *ctx,
 {
     int ret;
     mbedtls_mpi r, s;
-    ECDSA_VALIDATE_RET( ctx  != NULL );
-    ECDSA_VALIDATE_RET( hash != NULL );
-    ECDSA_VALIDATE_RET( sig  != NULL );
 
     mbedtls_mpi_init( &r );
     mbedtls_mpi_init( &s );
