@@ -590,6 +590,7 @@ int vsl_ecdsa_get_curve(char *name, unsigned int nlen, vsl_curve_point *points)
     if (__mbedtls_ecp_group_load(&grp, s_curve_id) != 0) {
         return -1;
     }
+    __export_ecp_group(&grp);
     __export_curve_points(points);
     strcpy(name, s_curve_name);
 

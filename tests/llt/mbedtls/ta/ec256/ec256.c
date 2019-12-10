@@ -210,22 +210,23 @@ uint8 TA_ec256_register_curve(const uint8 *ec_name)
     if (ec_name == NULL) {
         return -1;
     }
-    unsigned int nlen = strlen(ec_name);
+    const char *name = (const char *)ec_name;
+    unsigned int nlen = strlen(name);
     if (nlen >= CONFIG_CURVE_NAME_LEN) {
         mbedtls_log("name is too long");
         return -1;
     }
-    if (strcmp(ec_name, TA_PRIME256V1_NAME) == 0) {
+    if (strcmp(name, TA_PRIME256V1_NAME) == 0) {
         s_curve_id = MBEDTLS_ECP_DP_SECP256R1;
-    } else if (strcmp(ec_name, TA_BP256R1_NAME) == 0) {
+    } else if (strcmp(name, TA_BP256R1_NAME) == 0) {
         s_curve_id = MBEDTLS_ECP_DP_BP256R1;
-    } else if (strcmp(ec_name, TA_FRP256V1_NAME) == 0) {
+    } else if (strcmp(name, TA_FRP256V1_NAME) == 0) {
         s_curve_id = MBEDTLS_ECP_DP_FRP256V1;
     } else {
-        mbedtls_log("invalid name \"%s\"", ec_name);
+        mbedtls_log("invalid name \"%s\"", name);
         return -1;
     }
-    strcpy(s_curve_name, ec_name);
+    strcpy(s_curve_name, name);
     s_curve_name[nlen] = '\0';
     s_custom_flag = 0;
 
@@ -261,9 +262,10 @@ uint8 TA_ec256_get_curve(uint8 *ec_name, uint8 a[32], uint8 b[32], uint8 p[32],
     if (__mbedtls_ecp_group_load(&grp, s_curve_id) != 0) {
         return -1;
     }
+    __export_ecp_group(&grp);
     __export_curve_points(a, b, p, gx, gy, n);
 
-    strcpy(ec_name, s_curve_name);
+    strcpy((char *)ec_name, s_curve_name);
 
     mbedtls_ecp_group_free(&grp);
 
@@ -285,7 +287,7 @@ static int __ta_ecdsa_destroy(void)
     return 0;
 }
 
-int __ta_ecdsa_init(void)
+static int __ta_ecdsa_init(void)
 {
     int ret;
     const char pers[] = "ecdsa";
@@ -375,7 +377,6 @@ static int __mbedtls_ecdsa_genkey( mbedtls_ecdsa_context *ctx, mbedtls_ecp_group
 uint8 TA_ec256_create_key_pair(uint8 sk[32], uint8 pk[64])
 {
     int ret = -1;
-    size_t len;
 
     if (pk == NULL || sk == NULL) {
         mbedtls_log("illegal input param");
@@ -531,7 +532,6 @@ uint8 TA_ec256_ecdsa_verify(uint8 *dgst, uint8 dgst_len, uint8 sign[64], uint8 p
 {
     int ret = -1;
     unsigned char hash[32] = {0};
-    size_t sig_len;
 
     if (dgst == NULL || dgst_len == 0 || sign == NULL || pk == NULL) {
         mbedtls_log("illegal input param");
@@ -751,7 +751,7 @@ uint8 TA_ec256_create_csr(uint8 sk[32], const uint8 *subject, uint8 *buf, uint16
         mbedtls_log("mbedtls_ecp_mul returned %d", ret);
         goto exit;
     }
-    if ((ret = mbedtls_x509write_csr_set_subject_name(&s_csr_ctx->req, subject)) != 0) {
+    if ((ret = mbedtls_x509write_csr_set_subject_name(&s_csr_ctx->req, (const char *)subject)) != 0) {
         mbedtls_log("mbedtls_x509write_csr_set_subject_name returned %d", ret);
         goto exit;
     }
