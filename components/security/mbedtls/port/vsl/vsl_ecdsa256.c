@@ -612,6 +612,51 @@ int vsl_ecdsa_def_curve(const char *name, vsl_curve_point *points)
     return 0;
 }
 
+int vsl_ecdsa_on_curve(unsigned char public_key[CONFIG_ECDSA_PUBKEY_LEN])
+{
+    int ret = -1;
+
+    if (public_key == NULL) {
+        return -1;
+    }
+    mbedtls_ecp_group grp;
+    mbedtls_ecp_group_init(&grp);
+
+    if (__mbedtls_ecp_group_load(&grp, s_curve_id) != 0) {
+        return -1;
+    }
+
+    mbedtls_ecp_point pt;
+    mbedtls_ecp_point_init(&pt);
+
+    ret = mbedtls_mpi_lset(&pt.Z, 1);
+    if (ret != 0) {
+        vlog_error("mbedtls_mpi_lset returned %d", ret);
+        goto exit;
+    }
+    ret = mbedtls_mpi_read_binary(&pt.X, public_key, CONFIG_ECDSA_PUBKEY_LEN / 2);
+    if (ret != 0) {
+        vlog_error("mbedtls_mpi_read_binary returned %d", ret);
+        goto exit;
+    }
+    ret = mbedtls_mpi_read_binary(&pt.Y, public_key + CONFIG_ECDSA_PUBKEY_LEN / 2,
+        CONFIG_ECDSA_PUBKEY_LEN / 2);
+    if (ret != 0) {
+        vlog_error("mbedtls_mpi_read_binary returned %d", ret);
+        goto exit;
+    }
+    ret = mbedtls_ecp_check_pubkey(&grp, &pt);
+    if (ret != 0) {
+        vlog_error("mbedtls_ecp_check_pubkey returned %d", ret);
+        goto exit;
+    }
+
+    ret = 0;
+
+exit:
+    return (ret ? -1 : 0);
+}
+
 #ifdef CONFIG_ECDSA256_CSR_MBEDTLS
 
 #include "mbedtls/x509_csr.h"

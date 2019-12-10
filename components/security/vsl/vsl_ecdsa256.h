@@ -69,6 +69,7 @@ typedef struct __vsl_curve_point {
 
 int vsl_ecdsa_get_curve(char *name, unsigned int nlen, vsl_curve_point *points);
 int vsl_ecdsa_def_curve(const char *name, vsl_curve_point *points);
+int vsl_ecdsa_on_curve(unsigned char public_key[CONFIG_ECDSA_PUBKEY_LEN]);
 
 int vsl_ecdsa_gen_csr(unsigned char private_key[CONFIG_ECDSA_PRIKEY_LEN], const char *subject,
                       char *buf, unsigned int *iolen);

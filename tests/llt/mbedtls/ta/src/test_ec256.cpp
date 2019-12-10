@@ -285,3 +285,17 @@ TEST_F(TestEc256, sha256)
 	printf("sha256:\n");
 	print_array(output, 32);
 }
+
+TEST_F(TestEc256, on_curve)
+{
+	unsigned char public_key[CONFIG_ECDSA_PUBKEY_LEN] = {0};
+	unsigned char private_key[CONFIG_ECDSA_PRIKEY_LEN] = {0};
+
+	TA_ec256_create_key_pair(private_key, public_key);
+
+	EXPECT_EQ(0, TA_ec256_is_on_curve(public_key));
+
+	public_key[0] = 'a';
+	public_key[1] = 'b';
+	EXPECT_NE(0, TA_ec256_is_on_curve(public_key));
+}

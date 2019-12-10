@@ -314,6 +314,51 @@ exit:
     return -1;
 }
 
+uint8 TA_ec256_is_on_curve(uint8 pk[64])
+{
+    int ret = -1;
+
+    if (pk == NULL) {
+        return -1;
+    }
+
+    mbedtls_ecp_group grp;
+    mbedtls_ecp_group_init(&grp);
+
+    if (__mbedtls_ecp_group_load(&grp, s_curve_id) != 0) {
+        return -1;
+    }
+
+    mbedtls_ecp_point pt;
+    mbedtls_ecp_point_init(&pt);
+
+    ret = mbedtls_mpi_lset(&pt.Z, 1);
+    if (ret != 0) {
+        mbedtls_log("mbedtls_mpi_lset returned %d", ret);
+        goto exit;
+    }
+    ret = mbedtls_mpi_read_binary(&pt.X, pk, 64 / 2);
+    if (ret != 0) {
+        mbedtls_log("mbedtls_mpi_read_binary returned %d", ret);
+        goto exit;
+    }
+    ret = mbedtls_mpi_read_binary(&pt.Y, pk + 64 / 2, 64 / 2);
+    if (ret != 0) {
+        mbedtls_log("mbedtls_mpi_read_binary returned %d", ret);
+        goto exit;
+    }
+    ret = mbedtls_ecp_check_pubkey(&grp, &pt);
+    if (ret != 0) {
+        mbedtls_log("mbedtls_ecp_check_pubkey returned %d", ret);
+        goto exit;
+    }
+
+    ret = 0;
+
+exit:
+    return (ret ? -1 : 0);
+}
+
 static int __mbedtls_ecdsa_genkey( mbedtls_ecdsa_context *ctx, mbedtls_ecp_group_id gid,
                   int (*f_rng)(void *, unsigned char *, size_t), void *p_rng )
 {

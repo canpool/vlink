@@ -270,3 +270,17 @@ TEST_F(TestEcdsa256, frp256v1)
 	printf("n:\n");
 	print_array(prime256v1_points.n, CONFIG_CURVE_POINT_LEN);
 }
+
+TEST_F(TestEcdsa256, on_curve)
+{
+	unsigned char public_key[CONFIG_ECDSA_PUBKEY_LEN] = {0};
+	unsigned char private_key[CONFIG_ECDSA_PRIKEY_LEN] = {0};
+
+	vsl_ecdsa_gen_keypair(public_key, private_key);
+
+	EXPECT_EQ(0, vsl_ecdsa_on_curve(public_key));
+
+	public_key[0] = 'a';
+	public_key[1] = 'b';
+	EXPECT_NE(0, vsl_ecdsa_on_curve(public_key));
+}

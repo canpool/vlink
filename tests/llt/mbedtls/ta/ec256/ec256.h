@@ -19,6 +19,7 @@ uint8 TA_ec256_register_custom_curve(uint8 *ec_name, uint8 a[32], uint8 b[32], u
                                      uint8 gx[32], uint8 gy[32], uint8 n[32]);
 uint8 TA_ec256_get_curve(uint8 *ec_name, uint8 a[32], uint8 b[32], uint8 p[32],
                          uint8 gx[32], uint8 gy[32], uint8 n[32]);
+uint8 TA_ec256_is_on_curve(uint8 pk[64]);
 uint8 TA_ec256_create_key_pair(uint8 sk[32], uint8 pk[64]);
 uint8 TA_ec256_ecdsa_sign(uint8 *dgst, uint16 dgst_len, uint8 sk[32], uint8 sign[64]);
 uint8 TA_ec256_ecdsa_verify(uint8 *dgst, uint8 dgst_len, uint8 sign[64], uint8 pk[64]);
