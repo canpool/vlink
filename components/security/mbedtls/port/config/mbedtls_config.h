@@ -71,6 +71,8 @@
 #include "mbedtls_config_pbkdf2.h"
 #endif
 
+#include "mbedtls_config_platform.h"
+
 #include "mbedtls/check_config.h"
 
 #endif /* MBEDTLS_CONFIG_H */

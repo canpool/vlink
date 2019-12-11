@@ -17,7 +17,8 @@ ifneq ($(__CONFIG_MBEDTLS__), y)
 __CONFIG_MBEDTLS__ = y
 
 MBEDTLS_SRC = \
-        ${wildcard $(MBEDTLS_BASE_DIR)/library/*.c}
+        ${wildcard $(MBEDTLS_BASE_DIR)/library/*.c} \
+        ${wildcard $(MBEDTLS_PORT_DIR)/shared/*.c}
 
 MBEDTLS_INC = \
         -I $(MBEDTLS_BASE_DIR)/include \

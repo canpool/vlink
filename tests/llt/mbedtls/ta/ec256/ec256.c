@@ -33,6 +33,9 @@
 #include "mbedtls/x509_csr.h"
 #include "mbedtls/pem.h"
 #include "mbedtls/pk.h"
+#include "mbedtls/oid.h"
+#include "mbedtls/asn1write.h"
+#include "mbedtls/platform_util.h"
 
 // md5
 #include "mbedtls/md5.h"
@@ -675,27 +678,143 @@ static int __ta_csr_init(void)
     return 0;
 }
 
+static int __mbedtls_x509write_csr_der( mbedtls_x509write_csr *ctx, unsigned char *tmp_buf,
+                       unsigned char *buf, size_t size,
+                       int (*f_rng)(void *, unsigned char *, size_t),
+                       void *p_rng )
+{
+    int ret;
+    const char *sig_oid;
+    size_t sig_oid_len = 0;
+    unsigned char *c, *c2;
+    unsigned char hash[64];
+    unsigned char sig[MBEDTLS_MPI_MAX_SIZE];
+    size_t pub_len = 0, sig_and_oid_len = 0, sig_len;
+    size_t len = 0;
+    mbedtls_pk_type_t pk_alg;
+
+    /*
+     * Prepare data to be signed in tmp_buf
+     */
+    c = tmp_buf + size;
+
+    MBEDTLS_ASN1_CHK_ADD( len, mbedtls_x509_write_extensions( &c, tmp_buf, ctx->extensions ) );
+
+    if( len )
+    {
+        MBEDTLS_ASN1_CHK_ADD( len, mbedtls_asn1_write_len( &c, tmp_buf, len ) );
+        MBEDTLS_ASN1_CHK_ADD( len, mbedtls_asn1_write_tag( &c, tmp_buf, MBEDTLS_ASN1_CONSTRUCTED |
+                                                        MBEDTLS_ASN1_SEQUENCE ) );
+
+        MBEDTLS_ASN1_CHK_ADD( len, mbedtls_asn1_write_len( &c, tmp_buf, len ) );
+        MBEDTLS_ASN1_CHK_ADD( len, mbedtls_asn1_write_tag( &c, tmp_buf, MBEDTLS_ASN1_CONSTRUCTED |
+                                                        MBEDTLS_ASN1_SET ) );
+
+        MBEDTLS_ASN1_CHK_ADD( len, mbedtls_asn1_write_oid( &c, tmp_buf, MBEDTLS_OID_PKCS9_CSR_EXT_REQ,
+                                          MBEDTLS_OID_SIZE( MBEDTLS_OID_PKCS9_CSR_EXT_REQ ) ) );
+
+        MBEDTLS_ASN1_CHK_ADD( len, mbedtls_asn1_write_len( &c, tmp_buf, len ) );
+        MBEDTLS_ASN1_CHK_ADD( len, mbedtls_asn1_write_tag( &c, tmp_buf, MBEDTLS_ASN1_CONSTRUCTED |
+                                                        MBEDTLS_ASN1_SEQUENCE ) );
+    }
+
+    MBEDTLS_ASN1_CHK_ADD( len, mbedtls_asn1_write_len( &c, tmp_buf, len ) );
+    MBEDTLS_ASN1_CHK_ADD( len, mbedtls_asn1_write_tag( &c, tmp_buf, MBEDTLS_ASN1_CONSTRUCTED |
+                                                    MBEDTLS_ASN1_CONTEXT_SPECIFIC ) );
+
+    MBEDTLS_ASN1_CHK_ADD( pub_len, mbedtls_pk_write_pubkey_der( ctx->key,
+                                                tmp_buf, c - tmp_buf ) );
+    c -= pub_len;
+    len += pub_len;
+
+    /*
+     *  Subject  ::=  Name
+     */
+    MBEDTLS_ASN1_CHK_ADD( len, mbedtls_x509_write_names( &c, tmp_buf, ctx->subject ) );
+
+    /*
+     *  Version  ::=  INTEGER  {  v1(0), v2(1), v3(2)  }
+     */
+    MBEDTLS_ASN1_CHK_ADD( len, mbedtls_asn1_write_int( &c, tmp_buf, 0 ) );
+
+    MBEDTLS_ASN1_CHK_ADD( len, mbedtls_asn1_write_len( &c, tmp_buf, len ) );
+    MBEDTLS_ASN1_CHK_ADD( len, mbedtls_asn1_write_tag( &c, tmp_buf, MBEDTLS_ASN1_CONSTRUCTED |
+                                                    MBEDTLS_ASN1_SEQUENCE ) );
+
+    /*
+     * Prepare signature
+     */
+    mbedtls_md( mbedtls_md_info_from_type( ctx->md_alg ), c, len, hash );
+
+    if( ( ret = mbedtls_pk_sign( ctx->key, ctx->md_alg, hash, 0, sig, &sig_len,
+                                 f_rng, p_rng ) ) != 0 )
+    {
+        return( ret );
+    }
+
+    if( mbedtls_pk_can_do( ctx->key, MBEDTLS_PK_RSA ) )
+        pk_alg = MBEDTLS_PK_RSA;
+    else if( mbedtls_pk_can_do( ctx->key, MBEDTLS_PK_ECDSA ) )
+        pk_alg = MBEDTLS_PK_ECDSA;
+    else
+        return( MBEDTLS_ERR_X509_INVALID_ALG );
+
+    if( ( ret = mbedtls_oid_get_oid_by_sig_alg( pk_alg, ctx->md_alg,
+                                                &sig_oid, &sig_oid_len ) ) != 0 )
+    {
+        return( ret );
+    }
+
+    /*
+     * Write data to output buffer
+     */
+    c2 = buf + size;
+    MBEDTLS_ASN1_CHK_ADD( sig_and_oid_len, mbedtls_x509_write_sig( &c2, buf,
+                                        sig_oid, sig_oid_len, sig, sig_len ) );
+
+    if( len > (size_t)( c2 - buf ) )
+        return( MBEDTLS_ERR_ASN1_BUF_TOO_SMALL );
+
+    c2 -= len;
+    memcpy( c2, c, len );
+
+    len += sig_and_oid_len;
+    MBEDTLS_ASN1_CHK_ADD( len, mbedtls_asn1_write_len( &c2, buf, len ) );
+    MBEDTLS_ASN1_CHK_ADD( len, mbedtls_asn1_write_tag( &c2, buf, MBEDTLS_ASN1_CONSTRUCTED |
+                                                 MBEDTLS_ASN1_SEQUENCE ) );
+
+    return( (int) len );
+}
+
 #define PEM_BEGIN_CSR           "-----BEGIN CERTIFICATE REQUEST-----\n"
 #define PEM_END_CSR             "-----END CERTIFICATE REQUEST-----\n"
 
 static int __mbedtls_x509write_csr_pem(mbedtls_x509write_csr *ctx, unsigned char *buf, size_t *size,
                                        int (*f_rng)(void *, unsigned char *, size_t), void *p_rng)
 {
-    int ret;
+    int ret = -1;
     unsigned char *output_buf = NULL;
+    unsigned char *tmp_buf = NULL;
     size_t olen = 0;
 
     output_buf = (unsigned char *)mbedtls_malloc(CONFIG_CSR_DERBUF_LEN);
     if (output_buf == NULL) {
         return -1;
     }
-    memset(output_buf, 0, CONFIG_CSR_DERBUF_LEN);
-
-    if ((ret = mbedtls_x509write_csr_der(ctx, output_buf, CONFIG_CSR_DERBUF_LEN,
-            f_rng, p_rng)) < 0) {
-        mbedtls_log("mbedtls_x509write_csr_der returned %d", ret);
+    tmp_buf = (unsigned char *)mbedtls_malloc(CONFIG_CSR_DERBUF_LEN);
+    if (tmp_buf == NULL) {
         goto exit;
     }
+    memset(output_buf, 0, CONFIG_CSR_DERBUF_LEN);
+    memset(tmp_buf, 0, CONFIG_CSR_DERBUF_LEN);
+
+    if ((ret = __mbedtls_x509write_csr_der(ctx, tmp_buf, output_buf, CONFIG_CSR_DERBUF_LEN,
+            f_rng, p_rng)) < 0) {
+        mbedtls_log("mbedtls_x509write_csr_der returned %d", ret);
+        mbedtls_free(tmp_buf);
+        goto exit;
+    }
+    mbedtls_free(tmp_buf);
 
     if ((ret = mbedtls_pem_write_buffer(PEM_BEGIN_CSR, PEM_END_CSR,
             output_buf + CONFIG_CSR_DERBUF_LEN - ret, ret, buf, *size, &olen)) != 0) {
@@ -712,6 +831,7 @@ exit:
 uint8 TA_ec256_create_csr(uint8 sk[32], const uint8 *subject, uint8 *buf, uint16 *iolen)
 {
     int ret = -1;
+    size_t len = 0;
 
     if (sk == NULL || subject == NULL || buf == NULL || iolen == NULL) {
         mbedtls_log("illegal input param");
@@ -749,12 +869,13 @@ uint8 TA_ec256_create_csr(uint8 sk[32], const uint8 *subject, uint8 *buf, uint16
     s_csr_ctx->key.pk_info = mbedtls_pk_info_from_type(MBEDTLS_PK_ECKEY);
     mbedtls_x509write_csr_set_key(&s_csr_ctx->req, &s_csr_ctx->key);
 
-    if ((ret = __mbedtls_x509write_csr_pem(&s_csr_ctx->req, buf, (size_t *)iolen,
+    len = *iolen;
+    if ((ret = __mbedtls_x509write_csr_pem(&s_csr_ctx->req, buf, &len,
             mbedtls_ctr_drbg_random, &s_dsa_ctx->ctr_drbg)) != 0) {
         mbedtls_log("__mbedtls_x509write_csr_pem returned %d", ret);
         goto exit;
     }
-
+    *iolen = (uint16)len;
     ret = 0;
 
 exit:
