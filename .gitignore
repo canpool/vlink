@@ -1,0 +1,10 @@
+.vscode
+*.pyc
+*.gcda
+*.gcno
+*.o
+*.hex
+*.elf
+*.bin
+*.map
+.project
