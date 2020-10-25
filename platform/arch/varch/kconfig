@@ -1,0 +1,9 @@
+# Copyright (c) [2020] vlink Team. All rights reserved.
+# SPDX-License-Identifier: MulanPSL-2.0
+
+config VARCH
+    def_bool n
+
+config ARCH
+    string
+    default "varch" if VARCH

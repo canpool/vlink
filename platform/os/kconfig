@@ -1,0 +1,14 @@
+# Copyright (c) [2020] vlink Team. All rights reserved.
+# SPDX-License-Identifier: MulanPSL-2.0
+
+rsource "os.config"
+
+choice OS_TYPE
+    prompt "os configuration"
+
+config LINUX
+    depends on LINUX_SUPPORTED
+    bool "linux"
+    rsource "linux/kconfig"
+
+endchoice
