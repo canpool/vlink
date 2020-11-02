@@ -5,3 +5,4 @@ mainmenu "vlink configuration"
 
 rsource "platform/arch/kconfig"
 rsource "platform/os/kconfig"
+rsource "utils/kconfig"

@@ -26,6 +26,10 @@ dirs           :=
 cflags-global  :=
 inc-global     := -I$(root_dir)/include -I$(proj)/config
 
+ifneq ($(CONFIG_LINUX),y)
+inc-global     += -I$(root_dir)/include/posix
+endif
+
 arch            = $(patsubst "%",%,$(CONFIG_ARCH))
 soc             = $(curdir)/$(patsubst "%",%,$(CONFIG_SOC))
 

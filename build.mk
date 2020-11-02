@@ -1,2 +1,2 @@
-dir-y += platform link
-inc	  +=
+dir-y += platform link utils
+inc   += include
