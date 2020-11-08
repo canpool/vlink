@@ -1,1 +1,2 @@
-dir-y += *
+dir-y    += *
+inc-g-y  += compiler
