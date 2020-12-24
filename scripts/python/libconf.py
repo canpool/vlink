@@ -151,13 +151,16 @@ config PROJECT_{0}
 
 source "{2}/kconfig"
 
-menu "vlink platform (soc and board) configuration"
+menu "platform (soc and board) configuration"
 
 source "{3}/kconfig"
 {4}
 endmenu
 
 '''
+
+def _relcurpath(path):
+    return os.path.relpath(path, os.path.curdir)
 
 def parse_workspace(workspace, force):
     global project
@@ -218,14 +221,14 @@ def parse_workspace(workspace, force):
                     kconfig_list.insert(0, os.path.join(kconfig_dir, "kconfig"))
                 kconfig_dir = os.path.dirname(kconfig_dir)
 
-            f.write(prj_kconfig.format(int(time.time()), bsp.upper(), root_dir, bsp_dir,
-                                       "".join(["source \"" + x + "\"\n" for x in kconfig_list])))
+            f.write(prj_kconfig.format(int(time.time()), bsp.upper(), _relcurpath(root_dir), _relcurpath(bsp_dir),
+                                       "".join(["source \"" + _relcurpath(x) + "\"\n" for x in kconfig_list])))
         kconf = get_kconfig()
 
         # create Makefile
         with open("Makefile", "w", encoding = "utf-8") as f:
             f.write("# created by project maintenance tool, do not edit it!\n")
-            f.write("root_dir   := %s\n" % (root_dir))
+            f.write("root_dir   := $(abspath $(PWD)/%s)\n" % (_relcurpath(root_dir)))
 
             f.write("include $(root_dir)/scripts/make/entry.mk")
     else:
