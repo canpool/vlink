@@ -1,9 +1,9 @@
 # Copyright (c) [2020] vlink Team. All rights reserved.
 # SPDX-License-Identifier: MulanPSL-2.0
 
-config VLINUX
+config VLINUX64
     def_bool n
-    select VM
+    select VM64
 
 config SOC
-    def_string "vm"
+    def_string "vm64"

@@ -7,3 +7,16 @@ config VARCH
 config ARCH
     string
     default "varch" if VARCH
+
+config ARCH_BITS
+    string
+    default "32" if VARCH_32
+    default "64" if VARCH_32
+
+config VARCH_32
+    def_bool n
+    select VARCH
+
+config VARCH_64
+    def_bool n
+    select VARCH
