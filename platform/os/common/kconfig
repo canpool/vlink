@@ -1,0 +1,14 @@
+# Copyright (c) [2020] vlink Team. All rights reserved.
+# SPDX-License-Identifier: MulanPSL-2.0
+
+menu "common configuration"
+
+config SWQUE
+    bool "software queue"
+    default n
+
+config SWTMR
+    bool "software timer"
+    default n
+
+endmenu

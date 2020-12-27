@@ -1,1 +1,1 @@
-src-y += *.c
+src-$(CONFIG_LINUX) += *.c
