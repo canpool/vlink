@@ -1,0 +1,12 @@
+# Copyright (c) [2020] vlink Team. All rights reserved.
+# SPDX-License-Identifier: MulanPSL-2.0
+
+choice LLT_TYPE
+    prompt "llt configuration"
+    depends on LLT
+
+config GTEST
+    bool "googletest"
+    rsource "gtest/kconfig"
+
+endchoice

@@ -24,11 +24,7 @@ proj           := $(abspath ./)
 dirs           :=
 
 cflags-global  :=
-inc-global     := -I$(root_dir)/include -I$(proj)/config
-
-ifneq ($(CONFIG_LINUX),y)
-inc-global     += -I$(root_dir)/include/posix
-endif
+inc-global     := -I$(proj)/config
 
 arch            = $(patsubst "%",%,$(CONFIG_ARCH))
 soc             = $(curdir)/$(patsubst "%",%,$(CONFIG_SOC))
@@ -49,6 +45,7 @@ srcs           := $(patsubst $(root_dir)%,$(outdir)%,$(foreach d,$(dirs),$(src-$
 
 objs           := $(srcs:.c=.o)
 objs           := $(objs:.s=.o)
+objs           := $(objs:.cpp=.o)
 
 outdirs        := $(sort $(dir $(objs)))
 
@@ -57,6 +54,10 @@ ifeq ($(V),1)
     $(info objects = $(objs))
     $(info outdir = $(strip $(outdir)))
     $(info outdirs = $(outdirs))
+endif
+
+ifeq ($(CX),)
+    CX          = $(CC)
 endif
 
 .PHONY : all
@@ -69,7 +70,7 @@ $(outdir)/$(target).bin : $(outdir)/$(target).elf
 	$(OBJCOPY) $< $@ -O binary
 
 $(outdir)/$(target).elf : $(objs) $(ld_script)
-	$(CC) $(filter %.o, $^) $(cflags-arch) $(lflags) -o $@
+	$(CX) $(filter %.o, $^) $(cflags-arch) $(lflags) -o $@
 	$(SIZE) $@
 
 $(outdir)/%.o : %.c
@@ -78,9 +79,18 @@ $(outdir)/%.o : %.c
 $(outdir)/%.o : %.s
 	$(strip $(CC) $(cflags-common) $(cflags-global) $(cflags-$<) -I$(proj) $(inc-global) $(inc-$(abspath $<)) $< -c -o $@)
 
+$(outdir)/%.o : %.cpp
+	$(strip $(CPP) $(cppflags-common) $(cflags-global) $(cflags-$<) -I$(proj) $(inc-global) $(inc-$(abspath $<)) $< -c -o $@)
+
 .PHONY : clean
 clean :
 	@rm -rf $(objs) $(objs:.o=.d) $(objs:.o=.list)
+ifdef CONFIG_GCOV
+	@rm -rf $(objs:.o=.gcno) $(objs:.o=.gcda)
+endif
+ifdef CONFIG_VALGRIND
+	@rm -rf *.log
+endif
 
 # define rules for creating out dirs
 define dir-rule

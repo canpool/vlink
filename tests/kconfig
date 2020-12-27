@@ -1,0 +1,15 @@
+# Copyright (c) [2020] vlink Team. All rights reserved.
+# SPDX-License-Identifier: MulanPSL-2.0
+
+choice TEST_TYPE
+    prompt "test configuration"
+    default NOTEST
+
+config NOTEST
+    bool "no test"
+
+config LLT
+    bool "lower level test"
+    rsource "llt/kconfig"
+
+endchoice

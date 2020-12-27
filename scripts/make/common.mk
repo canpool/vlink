@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: MulanPSL-2.0
 
 CC            := '$(GNU_PREFIX)gcc'
+CPP           := '$(GNU_PREFIX)g++'
 AS            := '$(GNU_PREFIX)as'
 AR            := '$(GNU_PREFIX)ar' -r
 LD            := '$(GNU_PREFIX)ld'
@@ -26,10 +27,12 @@ else
 cflags-common += -O3
 endif
 
-ifneq ($(CONFIG_LINUX),y)
 lflags        += -Wl,-Map=$(outdir)/$(target).map,--cref
 # let linker to dump unused sections
 lflags        += -Wl,--gc-sections
+ifeq ($(CONFIG_LINUX),y)
+lflags        += -lpthread -lrt
+else
 # use newlib in nano version
 lflags        += --specs=nano.specs -lc -lnosys
 endif
