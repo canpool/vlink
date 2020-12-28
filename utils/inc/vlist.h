@@ -231,7 +231,7 @@ v_inline int vdlist_length(vdlist_t *head) {
  */
 #define vdlist_foreach_entry_safe(item, n, head, t, m)              \
     for (item = container_of((head)->next, t, m),                   \
-         n = container_of(item->m->next, t, m);                     \
+         n = container_of(item->m.next, t, m);                      \
          &item->m != (head);                                        \
          item = n, n = container_of(item->m.next, t, m))
 
@@ -268,6 +268,10 @@ v_inline void vslist_add_tail(vslist_t *head, vslist_t *node) {
         head = head->next;
     }
     vslist_add(head, node);
+}
+
+v_always_inline vslist_t * vslist_head(vslist_t *head) {
+    return head->next;
 }
 
 v_inline void vslist_del(vslist_t *head, vslist_t *node) {
@@ -315,11 +319,11 @@ v_inline int vslist_length(vslist_t *head) {
  * @param t     [IN]  the type of the container struct this is embedded in
  * @param m     [IN]  the name of the member within the struct
  */
-#define vslist_foreach_entry_safe(item, tmp, head, t, m)    \
+#define vslist_foreach_entry_safe(item, n, head, t, m)      \
     for (item = container_of((head)->next, t, m),           \
-         tmp = (head)->next->next;                          \
+         n = container_of(item->m.next, t, m);              \
          &item->m;                                          \
-         item = container_of(tmp, t, m), tmp = tmp->next)
+         item = n, n = item ? container_of(item->m.next, t, m) : NULL)
 
 
 #ifdef __cplusplus
