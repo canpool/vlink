@@ -24,7 +24,7 @@ int vring_init(vring_t *ring, unsigned char *buf, size_t size)
         return -1;
     }
 
-    if (size & (size - 1)) {
+    if (size & (size - 1) || size == 0) {
         return -1;
     }
 
@@ -47,7 +47,7 @@ vring_t *vring_create(size_t size)
 {
     vring_t *ring;
 
-    if (size & (size - 1)) {
+    if (size & (size - 1) || size == 0) {
         return NULL;
     }
 
@@ -65,17 +65,15 @@ vring_t *vring_create(size_t size)
 }
 
 /**
- * @brief destroy a ring
+ * @brief delete a ring
  *
- * @param ring [IN] the ring to be destroied, must be created by vring_create
+ * @param ring [IN] the ring to be deleted, must be created by vring_create
  */
-void vring_destroy(vring_t *ring)
+void vring_delete(vring_t *ring)
 {
     if (ring == NULL) {
         return;
     }
-
-    free(ring->buf); /* it is ok to free (NULL) */
     free(ring);
 }
 

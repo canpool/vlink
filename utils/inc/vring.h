@@ -20,8 +20,8 @@ extern "C" {
  *      +---------+---------+
  *      `------- size ------`
  *
- * full : head == tail
- * empty: head == (tail + 1) % size
+ * empty: head == tail
+ * full : head == (tail + 1) % size
  *        or
  *        tail - head == size
  */
@@ -84,11 +84,11 @@ v_inline unsigned char vring_peek(vring_t *ring, size_t idx) {
 
 int      vring_init(vring_t *ring, unsigned char *buf, size_t size);
 vring_t *vring_create(size_t size);
-void     vring_destroy(vring_t *ring);
+void     vring_delete(vring_t *ring);
 size_t   vring_put(vring_t *ring, unsigned char *buf, size_t len);
 size_t   vring_put_force(vring_t *ring, unsigned char *buf, size_t len);
-size_t   vring_putc(vring_t *ring, unsigned char  byte);
-size_t   vring_putc_force(vring_t *ring, unsigned char  byte);
+size_t   vring_putc(vring_t *ring, unsigned char byte);
+size_t   vring_putc_force(vring_t *ring, unsigned char byte);
 size_t   vring_get(vring_t *ring, unsigned char *buf, size_t len);
 size_t   vring_getc(vring_t *ring, unsigned char *byte);
 
