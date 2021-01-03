@@ -5,6 +5,7 @@
  */
 
 #include "vos.h"
+#include "vconfig.h"
 
 #include <pthread.h>
 #include <semaphore.h>
@@ -78,8 +79,12 @@ int vtask_create(vtask_t *task, const char *name, int (*entry)(uintptr_t arg), u
     if (vmagic_verify(task)) {
         return -1;
     }
-    if (pthread_create(&pid, NULL, (pthread_entry)entry, (void *)arg) != 0) {
+    if (entry == NULL) {
         return -1;
+    }
+    int err = pthread_create(&pid, NULL, (pthread_entry)entry, (void *)arg);
+    if (err != 0) {
+        return err;
     }
     pthread_detach(pid);
     vmagic_set(task, pid);
@@ -92,9 +97,11 @@ int vtask_delete(vtask_t *task)
         return -1;
     }
     pthread_t pid = (pthread_t)vmagic_get(task);
-    if (pthread_cancel(pid) != 0) {
-        return -1;
+    int err = pthread_cancel(pid);
+    if (err != 0) {
+        return err;
     }
+    vtask_sleep(10);
     vmagic_reset(task);
     return 0;
 }
@@ -159,9 +166,11 @@ int vmutex_init(vmutex_t *mutex)
     if (m == NULL) {
         return -1;
     }
-    if (pthread_mutex_init(m, NULL) != 0) {
+    int err = pthread_mutex_init(m, NULL);
+    if (err != 0) {
         free(m);
-        return -1;
+        printf("err: %d\n", err);
+        return err;
     }
     vmagic_set(mutex, m);
     return 0;
@@ -173,8 +182,9 @@ int vmutex_destroy(vmutex_t *mutex)
         return -1;
     }
     pthread_mutex_t *m = (pthread_mutex_t *)vmagic_get(mutex);
-    if (pthread_mutex_destroy(m) != 0) {
-        // return -1;
+    int err = pthread_mutex_destroy(m);
+    if (err != 0) {
+        return err;
     }
     free(m);
     vmagic_reset(mutex);
@@ -214,14 +224,15 @@ int vmutex_unlock(vmutex_t *mutex)
     if (!vmagic_verify(mutex)) {
         return -1;
     }
-    if (pthread_mutex_unlock((pthread_mutex_t *)vmagic_get(mutex)) != 0) {
-        return -1;
+    int err = pthread_mutex_unlock((pthread_mutex_t *)vmagic_get(mutex));
+    if (err != 0) {
+        return err;
     }
     usleep(1000);
     return 0;
 }
 
-int vsem_init(vsem_t *sem, int limit, int value)
+int vsem_init(vsem_t *sem, unsigned int limit, unsigned int value)
 {
     if (vmagic_verify(sem)) {
         return -1;
@@ -230,10 +241,10 @@ int vsem_init(vsem_t *sem, int limit, int value)
     if (s == NULL) {
         return -1;
     }
-
-    if (sem_init(s, 0, value) != 0) {
+    int err = sem_init(s, 0, value);
+    if (err != 0) {
         free(s);
-        return -1;
+        return err;
     }
     vmagic_set(sem, s);
     return 0;
@@ -245,8 +256,9 @@ int vsem_destroy(vsem_t *sem)
         return -1;
     }
     sem_t *s = (sem_t *)vmagic_get(sem);
-    if (sem_destroy(s) != 0) {
-        return -1;
+    int err = sem_destroy(s);
+    if (err != 0) {
+        return err;
     }
     free(s);
     vmagic_reset(sem);
@@ -287,6 +299,14 @@ int vsem_post(vsem_t *sem)
         return -1;
     }
     return sem_post((sem_t *)vmagic_get(sem));
+}
+
+int vsem_getvalue(vsem_t *sem, unsigned int *val)
+{
+    if (!vmagic_verify(sem) || val == NULL) {
+        return -1;
+    }
+    return sem_getvalue((sem_t *)vmagic_get(sem), (int *)val);
 }
 
 int vevent_init(vevent_t *event)
@@ -460,8 +480,9 @@ int vmq_delete(vmq_t *mq)
     if (q == NULL || q->name == NULL) {
         return -1;
     }
-    if (mq_close(q->id) != 0) {
-        return -1;
+    int err = mq_close(q->id);
+    if (err != 0) {
+        return err;
     }
     mq_unlink(q->name);
     free(q);

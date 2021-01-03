@@ -84,6 +84,7 @@ int swque_push(swque_t *queue, const void *buf, size_t size, uint32_t timeout)
         return VEINVAL;
     }
     if (queue->sync_mode) {
+        ret = VEFULL;
         if (vsem_timedwait(&queue->sem[SWQUE_OP_WR], timeout) == 0) {
             vmutex_lock(&queue->lock);
             ret = __swque_push(queue, buf, size);
@@ -122,6 +123,7 @@ int swque_pop(swque_t *queue, void *buf, size_t size, uint32_t timeout)
         return VEINVAL;
     }
     if (queue->sync_mode) {
+        ret = VEEMPTY;
         if (vsem_timedwait(&queue->sem[SWQUE_OP_RD], timeout) == 0) {
             vmutex_lock(&queue->lock);
             ret = __swque_pop(queue, buf, size);

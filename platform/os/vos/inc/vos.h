@@ -67,12 +67,13 @@ int vevent_send(vevent_t *event, uint32_t value);
 int vevent_clear(vevent_t *event, uint32_t value);
 
 /* semaphore */
-int vsem_init(vsem_t *sem, int limit, int value);
+int vsem_init(vsem_t *sem, unsigned int limit, unsigned int value);
 int vsem_destroy(vsem_t *sem);
 int vsem_timedwait(vsem_t *sem, uint32_t timeout);
 int vsem_trywait(vsem_t *sem);
 int vsem_wait(vsem_t *sem);
 int vsem_post(vsem_t *sem);
+int vsem_getvalue(vsem_t *sem, unsigned int *val);
 
 /* message queue */
 typedef struct vmq_buf {
