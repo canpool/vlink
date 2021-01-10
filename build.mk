@@ -1,4 +1,4 @@
-dir-y       += platform link utils tests
+dir-y       += platform link utils components tests
 
 inc-g-y     += include
 ifneq ($(CONFIG_LINUX),y)
