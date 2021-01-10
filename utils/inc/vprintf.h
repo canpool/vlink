@@ -18,6 +18,7 @@ int  vputc(int ch);
 int  vgetc(void);
 
 int  uprintf(const char *format, ...); // instead of printf, kprintf
+int  vuprintf(const char *format, va_list args);
 int  xprintf(const char *format, va_list args,
              int (*output)(uintptr_t, unsigned char), uintptr_t outarg);
 

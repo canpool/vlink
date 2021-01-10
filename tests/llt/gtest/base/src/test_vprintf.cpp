@@ -23,16 +23,9 @@ static int __uprintf_putc(uintptr_t arg, unsigned char ch)
     return 1;
 }
 
-int uprintf(const char *format, ...)
+int vuprintf(const char *format, va_list args)
 {
-    va_list valist;
-    int     nbytes;
-
-    va_start(valist, format);
-    nbytes = xprintf(format, valist, __uprintf_putc, 0);
-    va_end(valist);
-
-    return nbytes;
+    return xprintf(format, args, __uprintf_putc, 0);
 }
 
 }

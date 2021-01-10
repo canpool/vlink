@@ -11,16 +11,21 @@
 #include <limits.h>
 #include <string.h>
 
-v_weak int uprintf(const char *format, ...)
+int uprintf(const char *format, ...)
 {
     int     ret;
     va_list valist;
 
     va_start(valist, format);
-    ret = vprintf(format, valist);
+    ret = vuprintf(format, valist);
     va_end(valist);
 
     return ret;
+}
+
+v_weak int vuprintf(const char *format, va_list args)
+{
+    return vprintf(format, args);
 }
 
 v_weak int vputc(int ch)
