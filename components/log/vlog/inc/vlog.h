@@ -40,13 +40,13 @@ int vlog_get_level(void);
 const char *vlog_get_name(int level);
 const char *vlog_get_time(void);
 
-// TIME TAG[LEVEL][FUNCTION:LINE] MESSAGE
+// TIME TAG[LEVEL](FILE:LINE)[FUNCTION] MESSAGE
 #define vlog_x(level, format, ...)                                          \
     do {                                                                    \
         if ((level) <= vlog_get_level())  {                                 \
-            (void)vlog_print("%s %s[%s][%s:%d] " format "\r\n",             \
+            (void)vlog_print("%s %s[%s](%s:%d)[%s] " format "\r\n",         \
             vlog_get_time(), VLOG_TAG, vlog_get_name((level)),              \
-            __FUNCTION__, __LINE__, ##__VA_ARGS__);                         \
+            __FILE__, __LINE__, __FUNCTION__, ##__VA_ARGS__);               \
         }                                                                   \
     } while (0)
 
