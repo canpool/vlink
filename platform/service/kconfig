@@ -1,4 +1,10 @@
 # Copyright (c) [2020] vlink Team. All rights reserved.
 # SPDX-License-Identifier: MulanPSL-2.0
 
-rsource "service/kconfig"
+menu "service configuration"
+
+config VMODULE
+    bool "enable module"
+    default y
+
+endmenu
