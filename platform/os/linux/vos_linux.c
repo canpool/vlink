@@ -6,6 +6,7 @@
 
 #include "vos.h"
 #include "vconfig.h"
+#include "vmodule.h"
 
 #include <pthread.h>
 #include <semaphore.h>
@@ -70,6 +71,8 @@ int vos_exit(void)
 
     return VOK;
 }
+
+VMODULE_DEF(VMODULE_OS, vos_init, vos_exit);
 
 int vtask_create(vtask_t *task, const char *name, int (*entry)(uintptr_t arg), uintptr_t arg,
                  int stacksize, int priority)

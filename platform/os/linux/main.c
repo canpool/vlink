@@ -3,11 +3,16 @@
  * SPDX-License-Identifier: MulanPSL-2.0
  */
 
-#include <time.h>
-
+#include "vmodule.h"
 #include "vlink.h"
 
 int main(int argc, char **argv)
 {
-    return vlink_main(argc, argv);
+    int ret;
+
+    vmodule_init();
+    ret = vlink_main(argc, argv);
+    vmodule_exit();
+
+    return ret;
 }

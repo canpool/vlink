@@ -13,11 +13,9 @@ class TestSem : public ::testing::Test
 {
 protected:
     void SetUp() {
-        vos_init();
 	};
 
 	void TearDown() {
-        vos_exit();
 	};
 };
 
