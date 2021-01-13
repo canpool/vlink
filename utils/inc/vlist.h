@@ -134,6 +134,15 @@ v_always_inline int vdlist_empty(vdlist_t *head) {
 }
 
 /**
+ * @brief check if a list is uninitilized
+ *
+ * @param head [IN] the list head to check
+ */
+v_always_inline int vdlist_uninitilized(vdlist_t *head) {
+    return (head->prev == NULL || head->next == NULL);
+}
+
+/**
  * @brief get the length of list
  *
  * @param head [IN] the list head
