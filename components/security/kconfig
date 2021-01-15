@@ -4,3 +4,5 @@
 config SECUREC
     bool "secure C library"
     default n
+
+rsource "crc/kconfig"

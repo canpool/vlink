@@ -1,0 +1,34 @@
+# Copyright (c) [2021] vlink Team. All rights reserved.
+# SPDX-License-Identifier: MulanPSL-2.0
+
+menu "crc configuration"
+
+config CRC
+    def_bool n
+
+config CRC8
+    bool "enable CRC 8"
+    select CRC
+    default n
+
+config CRC16
+    bool "enable CRC 16"
+    select CRC
+    default n
+
+config CRC_CCITT
+    bool "enable CRC CCITT"
+    select CRC
+    default n
+
+config CRC32
+    bool "enable CRC 32"
+    select CRC
+    default n
+
+config CRC64
+    bool "enable CRC 64"
+    select CRC
+    default n
+
+endmenu
