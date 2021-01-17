@@ -3,7 +3,7 @@ cflags-g-y      += -fprofile-arcs -ftest-coverage
 lflags          += -lgcov
 
 ifndef GCOV_FILE_PATTERN
-tested_dirs := include link platform utils
+tested_dirs := include link platform utils components
 GCOV_FILE_PATTERN = $(addsuffix /*",$(addprefix "$(root_dir)/,$(tested_dirs)))
 endif
 endif # CONFIG_GCOV

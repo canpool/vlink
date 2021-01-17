@@ -86,7 +86,9 @@ $(outdir)/%.o : %.cpp
 clean :
 	@rm -rf $(objs) $(objs:.o=.d) $(objs:.o=.list)
 ifdef CONFIG_GCOV
-	@rm -rf $(objs:.o=.gcno) $(objs:.o=.gcda)
+	@rm -rf $(objs:.o=.gcno) $(objs:.o=.gcda) gcov
+	@find $(root_dir) -name "*.gcno" -delete
+	@find $(root_dir) -name "*.gcda" -delete
 endif
 ifdef CONFIG_VALGRIND
 	@rm -rf *.log

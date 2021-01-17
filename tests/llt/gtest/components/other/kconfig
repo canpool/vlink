@@ -1,0 +1,21 @@
+# Copyright (c) [2020] vlink Team. All rights reserved.
+# SPDX-License-Identifier: MulanPSL-2.0
+
+config CRC_CASE
+    bool "enable crc case"
+    select CRC8
+    select CRC16
+    select CRC_CCITT
+    select CRC32
+    select CRC64
+    default n
+
+config SECUREC_CASE
+    bool "enable securec case"
+    select SECUREC
+    default n
+
+config VLOG_CASE
+    bool "enable vlog case"
+    select VLOG
+    default n

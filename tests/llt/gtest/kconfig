@@ -9,4 +9,8 @@ config GCOV
 config VALGRIND
     def_bool y
 
+menu "test case configuration"
+rsource "*/kconfig"
+endmenu
+
 endif # GTEST

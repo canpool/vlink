@@ -1,3 +1,2 @@
-inc-l-y     = inc
-src-prefix  := src
-src-y       += *.cpp
+inc-l-$(CONFIG_BASE_CASE)    = inc
+src-$(CONFIG_BASE_CASE)     += src/*.cpp

@@ -1,0 +1,12 @@
+# Copyright (c) [2020] vlink Team. All rights reserved.
+# SPDX-License-Identifier: MulanPSL-2.0
+
+config SWQUE_CASE
+    bool "enable software queue case"
+    select SWQUE
+    default n
+
+config SWTMR_CASE
+    bool "enable software timer case"
+    select SWTMR
+    default n
