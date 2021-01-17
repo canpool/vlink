@@ -1,0 +1,19 @@
+# Copyright (c) [2021] vlink Team. All rights reserved.
+# SPDX-License-Identifier: MulanPSL-2.0
+
+menu "fs configuration"
+
+config VFS
+    bool "enable vfs"
+    default n
+
+config MOCKFS
+    def_bool n
+    select VFS
+
+config OPEN_MAX
+    int "Maximum number of files that one process can have open at anyone time"
+    depends on VFS
+    default 16
+
+endmenu

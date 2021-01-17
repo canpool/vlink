@@ -28,6 +28,7 @@ typedef enum {
     VMODULE_DRIVER,
     VMODULE_POSTDRIVER,
     VMODULE_LIB,
+    VMODULE_POSTLIB,
     VMODULE_USER,
     VMODULE_MAX,
 } vmoudle_e;

@@ -1,0 +1,1 @@
+src-$(CONFIG_VFS_CASE) += src/*.cpp
