@@ -1,0 +1,11 @@
+# Copyright (c) [2020] vlink Team. All rights reserved.
+# SPDX-License-Identifier: MulanPSL-2.0
+
+menu "driver case configuration"
+
+config HAL_CASE
+    bool "enable hal case"
+    select HAL
+    default n
+
+endmenu

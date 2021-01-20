@@ -1,0 +1,10 @@
+# Copyright (c) [2021] vlink Team. All rights reserved.
+# SPDX-License-Identifier: MulanPSL-2.0
+
+menu "hardware abstraction layer (hal) configuration"
+
+config HAL
+    bool "HAL abstraction layer"
+    default n
+
+endmenu
