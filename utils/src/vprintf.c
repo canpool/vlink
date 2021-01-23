@@ -11,33 +11,6 @@
 #include <limits.h>
 #include <string.h>
 
-int uprintf(const char *format, ...)
-{
-    int     ret;
-    va_list valist;
-
-    va_start(valist, format);
-    ret = vuprintf(format, valist);
-    va_end(valist);
-
-    return ret;
-}
-
-v_weak int vuprintf(const char *format, va_list args)
-{
-    return vprintf(format, args);
-}
-
-v_weak int vputc(int ch)
-{
-    return putchar(ch);
-}
-
-v_weak int vgetc(void)
-{
-    return getchar();
-}
-
 /* defines */
 
 #define XPF_ITYPE_INT       0
@@ -332,79 +305,4 @@ int xprintf(const char *format, va_list args,
     }
 
     return outputs;
-}
-
-static void print_indent(FILE *stream, int num)
-{
-    int i;
-
-    for (i = 0; i < num; ++i) {
-        fprintf(stream, "    ");
-    }
-}
-
-/**
- * @brief print buffer contents in message format
- *
- * uint8_t buffer[] = {
- *     1, 2, 3, 4, 43, 32, 1, 1, 144, 88, 4, 6, 7, 8, 9, 12,
- *     13, 14, 15, 16, 16, 235, 7, 8, 99, 54
- * };
- *
- * vprint_buffer(stdout, buffer, sizeof(buffer), 0);
- *
- * 01 02 03 04  2B 20 01 01  90 58 04 06  07 08 09 0C   ....+ ...X......
- * 0D 0E 0F 10  10 EB 07 08  63 36                      ........c6
- *
- * @param stream    [IN] the file stream, like: stdout, stderr
- * @param buffer    [IN] the data buffer
- * @param length    [IN] the length of buffer
- * @param indent    [IN] the indent count (each indent is four space)
- *
- * @return NA
- */
-void vprint_buffer(FILE *stream, const uint8_t *buffer, int length, int indent)
-{
-    int i;
-
-    if (length == 0) {
-        fprintf(stream, "\n");
-    }
-    if (buffer == NULL) {
-        return;
-    }
-
-    i = 0;
-    while (i < length) {
-        uint8_t array[16];
-        int     j;
-
-        print_indent(stream, indent);
-        memcpy(array, buffer + i, 16);
-        for (j = 0; j < 16 && i + j < length; j++) {
-            fprintf(stream, "%02X ", array[j]);
-            if (j % 4 == 3) {
-                fprintf(stream, " ");
-            }
-        }
-        if (length > 16) {
-            while (j < 16) {
-                fprintf(stream, "   ");
-                if (j % 4 == 3) {
-                    fprintf(stream, " ");
-                }
-                j++;
-            }
-        }
-        fprintf(stream, " ");
-        for (j = 0; j < 16 && i + j < length; j++) {
-            if (isprint(array[j])) {
-                fprintf(stream, "%c", array[j]);
-            } else {
-                fprintf(stream, ".");
-            }
-        }
-        fprintf(stream, "\n");
-        i += 16;
-    }
 }

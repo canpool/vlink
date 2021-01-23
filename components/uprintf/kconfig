@@ -1,11 +1,10 @@
 # Copyright (c) [2021] vlink Team. All rights reserved.
 # SPDX-License-Identifier: MulanPSL-2.0
 
-menu "log configuration"
+menu "uprintf configuration"
 
-config VLOG
-    bool "vlog system"
-    select UPRINTF
-    default n
+config UPRINTF
+    bool "add uprintf"
+    default y
 
 endmenu

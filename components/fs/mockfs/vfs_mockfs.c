@@ -18,6 +18,7 @@
 #include "vfs.h"
 #include "vmodule.h"
 
+#include <stdio.h>      // rename
 #include <fcntl.h>      // open
 #include <unistd.h>     // close, read, write, lseek, fsync
 #include <sys/ioctl.h>

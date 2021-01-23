@@ -10,7 +10,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "vbug.h"
 #include "vconfig.h"
 #include "vmodule.h"
 

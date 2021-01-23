@@ -5,7 +5,7 @@
 
 #include "vlog.h"
 
-#include "vprintf.h"
+#include "uprintf.h"
 #include "vos.h"
 
 #ifdef CONFIG_VLOG

@@ -1,11 +1,7 @@
 # Copyright (c) [2021] vlink Team. All rights reserved.
 # SPDX-License-Identifier: MulanPSL-2.0
 
-menu "log configuration"
-
-config VLOG
-    bool "vlog system"
+config DEBUG
+    bool "enable debug information"
     select UPRINTF
-    default n
-
-endmenu
+    default y

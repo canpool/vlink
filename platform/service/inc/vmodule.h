@@ -9,7 +9,6 @@
 #include "vlist.h"
 #include "vpool.h"
 #include "vconfig.h"
-#include "vprintf.h"
 
 #ifdef __cplusplus
 extern "C" {

@@ -19,3 +19,8 @@ config VLOG_CASE
     bool "enable vlog case"
     select VLOG
     default n
+
+config UPRINTF_CASE
+    bool "enable uprintf case"
+    select UPRINTF
+    default n

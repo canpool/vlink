@@ -6,9 +6,12 @@
 #ifndef __VBUG_H__
 #define __VBUG_H__
 
-#include "vprintf.h"
 #include "vpool.h"
 #include "vconfig.h"
+
+#ifdef CONFIG_UPRINTF
+#include "uprintf.h"
+#endif
 
 #ifdef __cplusplus
 extern "C" {

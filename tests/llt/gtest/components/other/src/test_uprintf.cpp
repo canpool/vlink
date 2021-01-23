@@ -5,6 +5,7 @@
  */
 
 #include "gtest/gtest.h"
+#include "uprintf.h"
 #include "vprintf.h"
 
 #include <cstdio>
@@ -14,10 +15,10 @@ extern "C" {
 
 static int __uprintf_putc(uintptr_t arg, unsigned char ch)
 {
-    vputc(ch);
+    uputc(ch);
 
     if (ch == '\n') {
-        vputc('\r');
+        uputc('\r');
     }
 
     return 1;
@@ -74,14 +75,4 @@ TEST_F(TestPrintf, printf)
     printf("%.*s\n", 2, "vlink");
     printf("%p\n", (void *)NULL);
     printf("%%\n");
-}
-
-TEST_F(TestPrintf, vprint_buffer)
-{
-    uint8_t buffer[] = {
-        1, 2, 3, 4, 43, 32, 1, 1, 144, 88, 4, 6, 7, 8,
-        9, 12, 13, 14, 15, 16, 16, 235, 7, 8, 99, 54
-    };
-
-    vprint_buffer(stdout, buffer, sizeof(buffer), 0);
 }
