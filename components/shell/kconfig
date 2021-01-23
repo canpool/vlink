@@ -1,0 +1,30 @@
+# Copyright (c) [2021] vlink Team. All rights reserved.
+# SPDX-License-Identifier: MulanPSL-2.0
+
+menu "shell configuration"
+
+config VSH
+    bool "vsh shell"
+    default n
+
+config VSH_BUF_SIZE
+    int "the vsh input buffer size"
+    depends on VSH
+    default 128
+
+config VSH_NR_ARGS
+    int "the vsh number of arguments"
+    depends on VSH
+    default 8
+
+config VSH_PROMPT
+    string "the vsh prompt"
+    depends on VSH
+    default "vsh"
+
+config VSH_WELLCOME
+    string "the vsh wellcome"
+    depends on VSH
+    default "vlink"
+
+endmenu

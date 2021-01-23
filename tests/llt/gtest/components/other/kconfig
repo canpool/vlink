@@ -24,3 +24,8 @@ config UPRINTF_CASE
     bool "enable uprintf case"
     select UPRINTF
     default n
+
+config VSH_CASE
+    bool "enable shell case"
+    select VSH
+    default n

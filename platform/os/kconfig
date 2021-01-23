@@ -9,6 +9,7 @@ choice OS_TYPE
 config LINUX
     depends on LINUX_SUPPORTED
     bool "linux"
+    select CONSTRUCTOR
     rsource "linux/kconfig"
 
 rsource "common/kconfig"
