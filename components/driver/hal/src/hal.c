@@ -116,7 +116,7 @@ int hal_exit(void)
     return vmutex_destroy(&s_dev_lock);
 }
 
-VMODULE_DEF(VMODULE_HAL, hal_init, hal_exit);
+VMODULE_DEF(hal, hal_init, hal_exit);
 
 int hal_register(hal_dev_t *dev)
 {

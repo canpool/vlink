@@ -20,6 +20,6 @@ int test_module_exit(void)
     return 0;
 }
 
-VMODULE_DEF(VMODULE_USER, test_module_init, test_module_exit);
+VMODULE_DEF(user, test_module_init, test_module_exit);
 
 }

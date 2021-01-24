@@ -993,7 +993,7 @@ int vfs_exit(void)
     return 0;
 }
 
-VMODULE_DEF(VMODULE_LIB, vfs_init, vfs_exit);
+VMODULE_DEF(lib, vfs_init, vfs_exit);
 
 int vfs_register(struct file_system *fs)
 {

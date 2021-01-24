@@ -72,7 +72,7 @@ int vos_exit(void)
     return VOK;
 }
 
-VMODULE_DEF(VMODULE_OS, vos_init, vos_exit);
+VMODULE_DEF(os, vos_init, vos_exit);
 
 int vtask_create(vtask_t *task, const char *name, int (*entry)(uintptr_t arg), uintptr_t arg,
                  int stacksize, int priority)

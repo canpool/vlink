@@ -162,7 +162,7 @@ int mockfs_exit(void)
     return vfs_unregister(&mockfs_fs);
 }
 
-VMODULE_DEF(VMODULE_POSTLIB, mockfs_init, mockfs_exit);
+VMODULE_DEF(postlib, mockfs_init, mockfs_exit);
 
 int mockfs_mount(const char *path)
 {
